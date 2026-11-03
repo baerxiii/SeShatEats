@@ -208,7 +208,7 @@ await supabaseClient
                     </div>
                 </div>
 
-                <div class="macro">
+                                <div class="macro">
                     <div class="label">
                         Fiber
                     </div>
@@ -220,11 +220,58 @@ await supabaseClient
 
             </div>
 
+            <br>
+
+            <button onclick="addFood(${food.id})">
+                ➕ Add To Diary
+            </button>
+
         </div>
         `;
     });
 
     resultsDiv.innerHTML = html;
+}
+
+    async function addFood(foodId) {
+
+    const { data: food, error: foodError } =
+        await supabaseClient
+            .from("usda_foods")
+            .select("*")
+            .eq("id", foodId)
+            .single();
+
+    if (foodError) {
+
+        console.error(foodError);
+
+        alert("Could not find food.");
+
+        return;
+    }
+
+    const { error } =
+        await supabaseClient
+            .from("food_logs")
+            .insert({
+                food_id: food.id,
+                servings: 1,
+                meal_type: "Lunch"
+            });
+
+    if (error) {
+
+        console.error(error);
+
+        alert("Failed to add food.");
+
+        return;
+    }
+
+    alert(
+        `${food.item_name} added to diary`
+    );
 }
 
 </script>
