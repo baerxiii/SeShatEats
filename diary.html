@@ -141,12 +141,22 @@ async function loadDiary(){
         .innerText = fat.toFixed(1);
 }
 
-    async function deleteLog(id){
+async function deleteLog(id){
 
-    await supabaseClient
-        .from("food_logs")
-        .delete()
-        .eq("id", id);
+    const { error } =
+        await supabaseClient
+            .from("food_logs")
+            .delete()
+            .eq("id", id);
+
+    if(error){
+
+        console.error(error);
+
+        alert(error.message);
+
+        return;
+    }
 
     location.reload();
 }
