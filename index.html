@@ -43,7 +43,6 @@ a{
     display:grid;
     grid-template-columns:
         repeat(auto-fit,minmax(200px,1fr));
-
     gap:15px;
 }
 
@@ -62,7 +61,6 @@ a{
     display:grid;
     grid-template-columns:
         repeat(auto-fit,minmax(180px,1fr));
-
     gap:10px;
 }
 
@@ -95,7 +93,7 @@ dialog{
 select{
     width:100%;
     padding:10px;
-    margin-top:10px;
+    margin-top:8px;
     margin-bottom:15px;
 }
 
@@ -106,6 +104,7 @@ button{
 </style>
 
 </head>
+
 <body>
 
 <h1>🍎 SeShatEats</h1>
@@ -214,7 +213,50 @@ Loading...
 Select Food
 </h2>
 
+<label>
+Food
+</label>
+
 <select id="foodSelect">
+</select>
+
+<label>
+Meal
+</label>
+
+<select id="mealSelect">
+
+<option value="Breakfast">
+🍳 Breakfast
+</option>
+
+<option value="Lunch" selected>
+🥪 Lunch
+</option>
+
+<option value="Dinner">
+🍽 Dinner
+</option>
+
+<option value="Snack">
+🍎 Snack
+</option>
+
+</select>
+
+<label>
+Servings
+</label>
+
+<select id="servingSelect">
+
+<option value="0.5">0.5</option>
+<option value="1" selected>1</option>
+<option value="1.5">1.5</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+
 </select>
 
 <button onclick="addSelectedFood()">
@@ -229,13 +271,11 @@ Cancel
 
 <script>
 
-let currentFoods = [];
-
 loadDashboard();
 
 async function openCategory(category){
 
-    const { data , error } =
+    const { data, error } =
         await supabaseClient
             .from("curated_foods")
             .select("*")
@@ -254,8 +294,6 @@ async function openCategory(category){
         return;
     }
 
-    currentFoods = data;
-
     const select =
         document.getElementById(
             "foodSelect"
@@ -265,11 +303,18 @@ async function openCategory(category){
 
     data.forEach(food => {
 
-        select.innerHTML += `
-        <option value="${food.usda_food_id}">
-            ${food.search_name} (${food.category})
-        </option>
-        `;
+        const option =
+            document.createElement(
+                "option"
+            );
+
+        option.value =
+            food.usda_food_id;
+
+        option.textContent =
+            food.search_name;
+
+        select.appendChild(option);
     });
 
     document
@@ -306,13 +351,29 @@ async function addSelectedFood(){
                 .value
         );
 
+    const mealType =
+        document
+            .getElementById(
+                "mealSelect"
+            )
+            .value;
+
+    const servings =
+        Number(
+            document
+                .getElementById(
+                    "servingSelect"
+                )
+                .value
+        );
+
     const { error } =
         await supabaseClient
             .from("food_logs")
             .insert({
                 food_id: foodId,
-                servings: 1,
-                meal_type: "Lunch"
+                servings: servings,
+                meal_type: mealType
             });
 
     if(error){
@@ -324,6 +385,8 @@ async function addSelectedFood(){
         return;
     }
 
+    closeDialog();
+
     location.reload();
 }
 
@@ -334,7 +397,7 @@ async function loadDashboard(){
             .toISOString()
             .split("T")[0];
 
-    const { data: logs } =
+    const { data: logs, error } =
         await supabaseClient
             .from("food_logs")
             .select("*")
@@ -346,6 +409,13 @@ async function loadDashboard(){
                 "created_at",
                 { ascending:false }
             );
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
 
     let calories = 0;
     let protein = 0;
@@ -369,17 +439,24 @@ async function loadDashboard(){
         if(!food)
             continue;
 
+        const servings =
+            Number(log.servings || 1);
+
         calories +=
-            Number(food.calories || 0);
+            Number(food.calories || 0)
+            * servings;
 
         protein +=
-            Number(food.protein_g || 0);
+            Number(food.protein_g || 0)
+            * servings;
 
         carbs +=
-            Number(food.carbs_g || 0);
+            Number(food.carbs_g || 0)
+            * servings;
 
         fat +=
-            Number(food.fat_g || 0);
+            Number(food.fat_g || 0)
+            * servings;
 
         html += `
         <div class="food-row">
@@ -390,7 +467,11 @@ async function loadDashboard(){
 
             <br>
 
-            ${food.calories}
+            Servings: ${servings}
+
+            <br>
+
+            ${(food.calories * servings).toFixed(0)}
             calories
 
             •
