@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
 <title>SeShatEats Dashboard</title>
 
@@ -19,14 +21,14 @@ body{
     padding:20px;
 }
 
-a{
-    text-decoration:none;
-    color:#2e7d32;
-    font-weight:bold;
-}
-
 h1{
     color:#2e7d32;
+}
+
+a{
+    color:#2e7d32;
+    text-decoration:none;
+    font-weight:bold;
 }
 
 .card{
@@ -39,7 +41,9 @@ h1{
 
 .stats{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    grid-template-columns:
+        repeat(auto-fit,minmax(200px,1fr));
+
     gap:15px;
 }
 
@@ -50,17 +54,19 @@ h1{
 }
 
 .big{
-    font-size:36px;
+    font-size:32px;
     font-weight:bold;
 }
 
-.quick-grid{
+.category-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    grid-template-columns:
+        repeat(auto-fit,minmax(180px,1fr));
+
     gap:10px;
 }
 
-.quick-btn{
+.category-btn{
     border:none;
     padding:15px;
     border-radius:10px;
@@ -70,7 +76,7 @@ h1{
     font-size:16px;
 }
 
-.quick-btn:hover{
+.category-btn:hover{
     background:#1b5e20;
 }
 
@@ -93,20 +99,26 @@ select{
     margin-bottom:15px;
 }
 
-.modal-buttons button{
-    margin-right:10px;
+button{
+    cursor:pointer;
 }
 
 </style>
-</head>
 
+</head>
 <body>
 
 <h1>🍎 SeShatEats</h1>
 
-<a href="search.html">🔍 Search Foods</a>
+<a href="search.html">
+🔍 Search Foods
+</a>
+
 |
-<a href="diary.html">📋 Diary</a>
+
+<a href="diary.html">
+📋 Diary
+</a>
 
 <br><br>
 
@@ -123,17 +135,17 @@ select{
 
 <div class="stat">
 <div>Protein</div>
-<div class="big" id="protein">0</div>
+<div class="big" id="protein">0g</div>
 </div>
 
 <div class="stat">
 <div>Carbs</div>
-<div class="big" id="carbs">0</div>
+<div class="big" id="carbs">0g</div>
 </div>
 
 <div class="stat">
 <div>Fat</div>
-<div class="big" id="fat">0</div>
+<div class="big" id="fat">0g</div>
 </div>
 
 </div>
@@ -144,29 +156,41 @@ select{
 
 <h2>🔥 Quick Add Foods</h2>
 
-<div class="quick-grid">
+<div class="category-grid">
 
-<button class="quick-btn" onclick="openDialog('proteinDialog')">
+<button
+class="category-btn"
+onclick="openCategory('Protein')">
 🥩 Protein
 </button>
 
-<button class="quick-btn" onclick="openDialog('dairyDialog')">
+<button
+class="category-btn"
+onclick="openCategory('Dairy')">
 🥛 Dairy
 </button>
 
-<button class="quick-btn" onclick="openDialog('fruitDialog')">
+<button
+class="category-btn"
+onclick="openCategory('Fruit')">
 🍎 Fruit
 </button>
 
-<button class="quick-btn" onclick="openDialog('vegetableDialog')">
+<button
+class="category-btn"
+onclick="openCategory('Vegetable')">
 🥦 Vegetables
 </button>
 
-<button class="quick-btn" onclick="openDialog('grainDialog')">
+<button
+class="category-btn"
+onclick="openCategory('Grain')">
 🍚 Grains
 </button>
 
-<button class="quick-btn" onclick="openDialog('seafoodDialog')">
+<button
+class="category-btn"
+onclick="openCategory('Seafood')">
 🐟 Seafood
 </button>
 
@@ -184,171 +208,20 @@ Loading...
 
 </div>
 
-<!-- PROTEIN -->
+<dialog id="foodDialog">
 
-<dialog id="proteinDialog">
+<h2 id="dialogTitle">
+Select Food
+</h2>
 
-<h2>🥩 Protein</h2>
-
-<select id="proteinSelect">
-
-<option value="5913">Egg (Hard Boiled)</option>
-
-<option value="4672">Egg White</option>
-
-<option value="3629">Chicken Breast</option>
-
-<option value="3565">Chicken Thigh</option>
-
-<option value="3566">Chicken Breast (Raw)</option>
-
+<select id="foodSelect">
 </select>
 
-<button onclick="addFromSelect('proteinSelect','proteinDialog')">
-Add
+<button onclick="addSelectedFood()">
+Add Food
 </button>
 
-<button onclick="closeDialog('proteinDialog')">
-Cancel
-</button>
-
-</dialog>
-
-<!-- DAIRY -->
-
-<dialog id="dairyDialog">
-
-<h2>🥛 Dairy</h2>
-
-<select id="dairySelect">
-
-<option value="1">Whole Milk</option>
-
-<option value="2">2% Milk</option>
-
-<option value="3">Greek Yogurt</option>
-
-<option value="4">Cottage Cheese</option>
-
-</select>
-
-<button onclick="addFromSelect('dairySelect','dairyDialog')">
-Add
-</button>
-
-<button onclick="closeDialog('dairyDialog')">
-Cancel
-</button>
-
-</dialog>
-
-<!-- FRUIT -->
-
-<dialog id="fruitDialog">
-
-<h2>🍎 Fruit</h2>
-
-<select id="fruitSelect">
-
-<option value="5">Banana</option>
-
-<option value="6">Apple</option>
-
-<option value="7">Orange</option>
-
-<option value="8">Blueberries</option>
-
-</select>
-
-<button onclick="addFromSelect('fruitSelect','fruitDialog')">
-Add
-</button>
-
-<button onclick="closeDialog('fruitDialog')">
-Cancel
-</button>
-
-</dialog>
-
-<!-- VEGETABLES -->
-
-<dialog id="vegetableDialog">
-
-<h2>🥦 Vegetables</h2>
-
-<select id="vegetableSelect">
-
-<option value="9">Broccoli</option>
-
-<option value="10">Carrots</option>
-
-<option value="11">Spinach</option>
-
-<option value="12">Cauliflower</option>
-
-</select>
-
-<button onclick="addFromSelect('vegetableSelect','vegetableDialog')">
-Add
-</button>
-
-<button onclick="closeDialog('vegetableDialog')">
-Cancel
-</button>
-
-</dialog>
-
-<!-- GRAINS -->
-
-<dialog id="grainDialog">
-
-<h2>🍚 Grains</h2>
-
-<select id="grainSelect">
-
-<option value="13">White Rice</option>
-
-<option value="14">Brown Rice</option>
-
-<option value="15">Oatmeal</option>
-
-<option value="16">Potato</option>
-
-</select>
-
-<button onclick="addFromSelect('grainSelect','grainDialog')">
-Add
-</button>
-
-<button onclick="closeDialog('grainDialog')">
-Cancel
-</button>
-
-</dialog>
-
-<!-- SEAFOOD -->
-
-<dialog id="seafoodDialog">
-
-<h2>🐟 Seafood</h2>
-
-<select id="seafoodSelect">
-
-<option value="17">Salmon</option>
-
-<option value="18">Tuna</option>
-
-<option value="19">Cod</option>
-
-<option value="20">Shrimp</option>
-
-</select>
-
-<button onclick="addFromSelect('seafoodSelect','seafoodDialog')">
-Add
-</button>
-
-<button onclick="closeDialog('seafoodDialog')">
+<button onclick="closeDialog()">
 Cancel
 </button>
 
@@ -356,35 +229,90 @@ Cancel
 
 <script>
 
+let currentFoods = [];
+
 loadDashboard();
 
-function openDialog(id){
-    document.getElementById(id).showModal();
+async function openCategory(category){
+
+    const { data , error } =
+        await supabaseClient
+            .from("curated_foods")
+            .select("*")
+            .eq(
+                "category",
+                category
+            )
+            .order(
+                "search_name"
+            );
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    currentFoods = data;
+
+    const select =
+        document.getElementById(
+            "foodSelect"
+        );
+
+    select.innerHTML = "";
+
+    data.forEach(food => {
+
+        select.innerHTML += `
+        <option value="${food.usda_food_id}">
+            ${food.search_name}
+        </option>
+        `;
+    });
+
+    document
+        .getElementById(
+            "dialogTitle"
+        )
+        .innerText =
+        category;
+
+    document
+        .getElementById(
+            "foodDialog"
+        )
+        .showModal();
 }
 
-function closeDialog(id){
-    document.getElementById(id).close();
+function closeDialog(){
+
+    document
+        .getElementById(
+            "foodDialog"
+        )
+        .close();
 }
 
-async function addFromSelect(selectId, dialogId){
+async function addSelectedFood(){
 
     const foodId =
-        document.getElementById(selectId).value;
-
-    await quickAddFood(foodId);
-
-    closeDialog(dialogId);
-}
-
-async function quickAddFood(foodId){
+        Number(
+            document
+                .getElementById(
+                    "foodSelect"
+                )
+                .value
+        );
 
     const { error } =
         await supabaseClient
             .from("food_logs")
             .insert({
-                food_id:Number(foodId),
-                servings:1,
-                meal_type:"Lunch"
+                food_id: foodId,
+                servings: 1,
+                meal_type: "Lunch"
             });
 
     if(error){
@@ -403,14 +331,17 @@ async function loadDashboard(){
 
     const today =
         new Date()
-        .toISOString()
-        .split("T")[0];
+            .toISOString()
+            .split("T")[0];
 
     const { data: logs } =
         await supabaseClient
             .from("food_logs")
             .select("*")
-            .eq("log_date", today)
+            .eq(
+                "log_date",
+                today
+            )
             .order(
                 "created_at",
                 { ascending:false }
@@ -429,15 +360,26 @@ async function loadDashboard(){
             await supabaseClient
                 .from("usda_foods")
                 .select("*")
-                .eq("id", log.food_id)
+                .eq(
+                    "id",
+                    log.food_id
+                )
                 .single();
 
-        if(!food) continue;
+        if(!food)
+            continue;
 
-        calories += Number(food.calories || 0);
-        protein += Number(food.protein_g || 0);
-        carbs += Number(food.carbs_g || 0);
-        fat += Number(food.fat_g || 0);
+        calories +=
+            Number(food.calories || 0);
+
+        protein +=
+            Number(food.protein_g || 0);
+
+        carbs +=
+            Number(food.carbs_g || 0);
+
+        fat +=
+            Number(food.fat_g || 0);
 
         html += `
         <div class="food-row">
@@ -448,7 +390,8 @@ async function loadDashboard(){
 
             <br>
 
-            ${food.calories} calories
+            ${food.calories}
+            calories
 
             •
 
@@ -458,19 +401,40 @@ async function loadDashboard(){
         `;
     }
 
-    document.getElementById("recentFoods").innerHTML =
-        html || "No foods logged today.";
+    document
+        .getElementById(
+            "recentFoods"
+        )
+        .innerHTML =
+        html ||
+        "No foods logged today.";
 
-    document.getElementById("calories").innerText =
+    document
+        .getElementById(
+            "calories"
+        )
+        .innerText =
         calories.toFixed(0);
 
-    document.getElementById("protein").innerText =
+    document
+        .getElementById(
+            "protein"
+        )
+        .innerText =
         protein.toFixed(1) + "g";
 
-    document.getElementById("carbs").innerText =
+    document
+        .getElementById(
+            "carbs"
+        )
+        .innerText =
         carbs.toFixed(1) + "g";
 
-    document.getElementById("fat").innerText =
+    document
+        .getElementById(
+            "fat"
+        )
+        .innerText =
         fat.toFixed(1) + "g";
 }
 
