@@ -11,21 +11,12 @@
 
 <style>
 
-*{
-    box-sizing:border-box;
-}
-
 body{
     font-family:Arial,sans-serif;
-    margin:0;
-    padding:20px;
-    background:#f4f7f4;
+    background:#f5f5f5;
     max-width:1200px;
     margin:auto;
-}
-
-h1{
-    color:#2e7d32;
+    padding:20px;
 }
 
 a{
@@ -34,215 +25,396 @@ a{
     font-weight:bold;
 }
 
-.grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-    gap:20px;
+h1{
+    color:#2e7d32;
 }
 
 .card{
     background:white;
     border-radius:12px;
     padding:20px;
+    margin-bottom:20px;
     box-shadow:0 2px 5px rgba(0,0,0,.1);
 }
 
-.big-number{
-    font-size:42px;
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+}
+
+.stat{
+    background:#fafafa;
+    padding:15px;
+    border-radius:10px;
+}
+
+.big{
+    font-size:36px;
     font-weight:bold;
 }
 
-.macro{
-    margin-top:10px;
-    font-size:18px;
+.quick-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px;
 }
 
-.quick-food{
+.quick-btn{
     border:none;
+    padding:15px;
+    border-radius:10px;
+    cursor:pointer;
     background:#2e7d32;
     color:white;
-    padding:12px;
-    border-radius:8px;
-    margin:5px;
-    cursor:pointer;
+    font-size:16px;
 }
 
-.quick-food:hover{
+.quick-btn:hover{
     background:#1b5e20;
 }
 
-.log-item{
+.food-row{
     padding:10px;
     border-bottom:1px solid #eee;
 }
 
-.nav{
-    margin-bottom:20px;
+dialog{
+    border:none;
+    border-radius:12px;
+    padding:25px;
+    width:450px;
+}
+
+select{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    margin-bottom:15px;
+}
+
+.modal-buttons button{
+    margin-right:10px;
 }
 
 </style>
 </head>
+
 <body>
 
 <h1>🍎 SeShatEats</h1>
 
-<div class="nav">
-
-<a href="index.html">
-🏠 Dashboard
-</a>
-
+<a href="search.html">🔍 Search Foods</a>
 |
+<a href="diary.html">📋 Diary</a>
 
-<a href="search.html">
-🔍 Search Foods
-</a>
-
-|
-
-<a href="diary.html">
-📋 Diary
-</a>
-
-</div>
-
-<div class="grid">
+<br><br>
 
 <div class="card">
 
-<h2>Today's Calories</h2>
+<h2>Today's Totals</h2>
 
-<div
-    id="totalCalories"
-    class="big-number"
->
-0
+<div class="stats">
+
+<div class="stat">
+<div>Calories</div>
+<div class="big" id="calories">0</div>
 </div>
 
-<div class="macro">
-Protein:
-<span id="totalProtein">
-0
-</span>g
+<div class="stat">
+<div>Protein</div>
+<div class="big" id="protein">0</div>
 </div>
 
-<div class="macro">
-Carbs:
-<span id="totalCarbs">
-0
-</span>g
+<div class="stat">
+<div>Carbs</div>
+<div class="big" id="carbs">0</div>
 </div>
 
-<div class="macro">
-Fat:
-<span id="totalFat">
-0
-</span>g
+<div class="stat">
+<div>Fat</div>
+<div class="big" id="fat">0</div>
+</div>
+
 </div>
 
 </div>
 
 <div class="card">
 
-<h2>Daily Goal</h2>
+<h2>🔥 Quick Add Foods</h2>
 
-<div class="big-number">
-2000
+<div class="quick-grid">
+
+<button class="quick-btn" onclick="openDialog('proteinDialog')">
+🥩 Protein
+</button>
+
+<button class="quick-btn" onclick="openDialog('dairyDialog')">
+🥛 Dairy
+</button>
+
+<button class="quick-btn" onclick="openDialog('fruitDialog')">
+🍎 Fruit
+</button>
+
+<button class="quick-btn" onclick="openDialog('vegetableDialog')">
+🥦 Vegetables
+</button>
+
+<button class="quick-btn" onclick="openDialog('grainDialog')">
+🍚 Grains
+</button>
+
+<button class="quick-btn" onclick="openDialog('seafoodDialog')">
+🐟 Seafood
+</button>
+
 </div>
 
-<div>
-Target Calories
 </div>
-
-</div>
-
-</div>
-
-<br>
 
 <div class="card">
 
-<h2>🔥 Quick Add</h2>
+<h2>📋 Recently Logged</h2>
 
-<button
-class="quick-food"
-onclick="quickAdd('egg')"
->
-🥚 Egg
-</button>
-
-<button
-class="quick-food"
-onclick="quickAdd('chicken')"
->
-🍗 Chicken
-</button>
-
-<button
-class="quick-food"
-onclick="quickAdd('beef')"
->
-🥩 Beef
-</button>
-
-<button
-class="quick-food"
-onclick="quickAdd('rice')"
->
-🍚 Rice
-</button>
-
-<button
-class="quick-food"
-onclick="quickAdd('banana')"
->
-🍌 Banana
-</button>
-
-<button
-class="quick-food"
-onclick="quickAdd('milk')"
->
-🥛 Milk
-</button>
-
-</div>
-
-<br>
-
-<div class="card">
-
-<h2>Today's Foods</h2>
-
-<div id="todayFoods">
-
-No foods logged today.
-
+<div id="recentFoods">
+Loading...
 </div>
 
 </div>
+
+<!-- PROTEIN -->
+
+<dialog id="proteinDialog">
+
+<h2>🥩 Protein</h2>
+
+<select id="proteinSelect">
+
+<option value="5913">Egg (Hard Boiled)</option>
+
+<option value="4672">Egg White</option>
+
+<option value="3629">Chicken Breast</option>
+
+<option value="3565">Chicken Thigh</option>
+
+<option value="3566">Chicken Breast (Raw)</option>
+
+</select>
+
+<button onclick="addFromSelect('proteinSelect','proteinDialog')">
+Add
+</button>
+
+<button onclick="closeDialog('proteinDialog')">
+Cancel
+</button>
+
+</dialog>
+
+<!-- DAIRY -->
+
+<dialog id="dairyDialog">
+
+<h2>🥛 Dairy</h2>
+
+<select id="dairySelect">
+
+<option value="1">Whole Milk</option>
+
+<option value="2">2% Milk</option>
+
+<option value="3">Greek Yogurt</option>
+
+<option value="4">Cottage Cheese</option>
+
+</select>
+
+<button onclick="addFromSelect('dairySelect','dairyDialog')">
+Add
+</button>
+
+<button onclick="closeDialog('dairyDialog')">
+Cancel
+</button>
+
+</dialog>
+
+<!-- FRUIT -->
+
+<dialog id="fruitDialog">
+
+<h2>🍎 Fruit</h2>
+
+<select id="fruitSelect">
+
+<option value="5">Banana</option>
+
+<option value="6">Apple</option>
+
+<option value="7">Orange</option>
+
+<option value="8">Blueberries</option>
+
+</select>
+
+<button onclick="addFromSelect('fruitSelect','fruitDialog')">
+Add
+</button>
+
+<button onclick="closeDialog('fruitDialog')">
+Cancel
+</button>
+
+</dialog>
+
+<!-- VEGETABLES -->
+
+<dialog id="vegetableDialog">
+
+<h2>🥦 Vegetables</h2>
+
+<select id="vegetableSelect">
+
+<option value="9">Broccoli</option>
+
+<option value="10">Carrots</option>
+
+<option value="11">Spinach</option>
+
+<option value="12">Cauliflower</option>
+
+</select>
+
+<button onclick="addFromSelect('vegetableSelect','vegetableDialog')">
+Add
+</button>
+
+<button onclick="closeDialog('vegetableDialog')">
+Cancel
+</button>
+
+</dialog>
+
+<!-- GRAINS -->
+
+<dialog id="grainDialog">
+
+<h2>🍚 Grains</h2>
+
+<select id="grainSelect">
+
+<option value="13">White Rice</option>
+
+<option value="14">Brown Rice</option>
+
+<option value="15">Oatmeal</option>
+
+<option value="16">Potato</option>
+
+</select>
+
+<button onclick="addFromSelect('grainSelect','grainDialog')">
+Add
+</button>
+
+<button onclick="closeDialog('grainDialog')">
+Cancel
+</button>
+
+</dialog>
+
+<!-- SEAFOOD -->
+
+<dialog id="seafoodDialog">
+
+<h2>🐟 Seafood</h2>
+
+<select id="seafoodSelect">
+
+<option value="17">Salmon</option>
+
+<option value="18">Tuna</option>
+
+<option value="19">Cod</option>
+
+<option value="20">Shrimp</option>
+
+</select>
+
+<button onclick="addFromSelect('seafoodSelect','seafoodDialog')">
+Add
+</button>
+
+<button onclick="closeDialog('seafoodDialog')">
+Cancel
+</button>
+
+</dialog>
 
 <script>
 
 loadDashboard();
 
-async function loadDashboard(){
+function openDialog(id){
+    document.getElementById(id).showModal();
+}
 
-    const { data: logs, error } =
+function closeDialog(id){
+    document.getElementById(id).close();
+}
+
+async function addFromSelect(selectId, dialogId){
+
+    const foodId =
+        document.getElementById(selectId).value;
+
+    await quickAddFood(foodId);
+
+    closeDialog(dialogId);
+}
+
+async function quickAddFood(foodId){
+
+    const { error } =
         await supabaseClient
             .from("food_logs")
-            .select("*")
-            .order(
-                "created_at",
-                { ascending:false }
-            );
+            .insert({
+                food_id:Number(foodId),
+                servings:1,
+                meal_type:"Lunch"
+            });
 
     if(error){
 
         console.error(error);
 
+        alert(error.message);
+
         return;
     }
+
+    location.reload();
+}
+
+async function loadDashboard(){
+
+    const today =
+        new Date()
+        .toISOString()
+        .split("T")[0];
+
+    const { data: logs } =
+        await supabaseClient
+            .from("food_logs")
+            .select("*")
+            .eq("log_date", today)
+            .order(
+                "created_at",
+                { ascending:false }
+            );
 
     let calories = 0;
     let protein = 0;
@@ -257,30 +429,18 @@ async function loadDashboard(){
             await supabaseClient
                 .from("usda_foods")
                 .select("*")
-                .eq(
-                    "id",
-                    log.food_id
-                )
+                .eq("id", log.food_id)
                 .single();
 
-        if(!food){
-            continue;
-        }
+        if(!food) continue;
 
-        calories +=
-            Number(food.calories || 0);
-
-        protein +=
-            Number(food.protein_g || 0);
-
-        carbs +=
-            Number(food.carbs_g || 0);
-
-        fat +=
-            Number(food.fat_g || 0);
+        calories += Number(food.calories || 0);
+        protein += Number(food.protein_g || 0);
+        carbs += Number(food.carbs_g || 0);
+        fat += Number(food.fat_g || 0);
 
         html += `
-        <div class="log-item">
+        <div class="food-row">
 
             <strong>
                 ${food.item_name}
@@ -290,78 +450,28 @@ async function loadDashboard(){
 
             ${food.calories} calories
 
+            •
+
+            ${log.meal_type}
+
         </div>
         `;
     }
 
-    document
-        .getElementById(
-            "todayFoods"
-        )
-        .innerHTML =
+    document.getElementById("recentFoods").innerHTML =
         html || "No foods logged today.";
 
-    document
-        .getElementById(
-            "totalCalories"
-        )
-        .innerText =
+    document.getElementById("calories").innerText =
         calories.toFixed(0);
 
-    document
-        .getElementById(
-            "totalProtein"
-        )
-        .innerText =
-        protein.toFixed(1);
+    document.getElementById("protein").innerText =
+        protein.toFixed(1) + "g";
 
-    document
-        .getElementById(
-            "totalCarbs"
-        )
-        .innerText =
-        carbs.toFixed(1);
+    document.getElementById("carbs").innerText =
+        carbs.toFixed(1) + "g";
 
-    document
-        .getElementById(
-            "totalFat"
-        )
-        .innerText =
-        fat.toFixed(1);
-}
-
-async function quickAdd(searchTerm){
-
-    const { data } =
-        await supabaseClient
-            .from("usda_foods")
-            .select("*")
-            .ilike(
-                "item_name",
-                `${searchTerm}%`
-            )
-            .limit(1);
-
-    if(!data || data.length === 0){
-
-        alert(
-            "Food not found."
-        );
-
-        return;
-    }
-
-    const food = data[0];
-
-    await supabaseClient
-        .from("food_logs")
-        .insert({
-            food_id: food.id,
-            servings: 1,
-            meal_type: "Lunch"
-        });
-
-    location.reload();
+    document.getElementById("fat").innerText =
+        fat.toFixed(1) + "g";
 }
 
 </script>
