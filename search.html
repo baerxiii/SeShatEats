@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SeShatEats Search</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="js/supabase.js"></script>
+
+    <style>
+        body{
+            font-family:Arial,sans-serif;
+            max-width:1000px;
+            margin:auto;
+            padding:20px;
+        }
+
+        input{
+            width:100%;
+            padding:10px;
+            font-size:18px;
+        }
+
+        .food{
+            border:1px solid #ddd;
+            border-radius:8px;
+            padding:12px;
+            margin-top:10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>SeShatEats</h1>
+
+<input
+    id="search"
+    placeholder="Search foods..."
+>
+
+<div id="results"></div>
+
+<script>
+
+const searchBox =
+    document.getElementById("search");
+
+searchBox.addEventListener(
+    "input",
+    searchFoods
+);
+
+async function searchFoods(){
+
+    const query =
+        searchBox.value.trim();
+
+    if(query.length < 2){
+        document.getElementById("results").innerHTML = "";
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+        .from("usda_foods")
+        .select("*")
+        .ilike(
+            "item_name",
+            `%${query}%`
+        )
+        .limit(25);
+
+    if(error){
+        console.error(error);
+        return;
+    }
+
+    let html = "";
+
+    data.forEach(food => {
+
+        html += `
+        <div class="food">
+            <h3>${food.item_name}</h3>
+
+            Calories: ${food.calories}<br>
+
+            Protein:
+            ${food.protein_g}g<br>
+
+            Carbs:
+            ${food.carbs_g}g<br>
+
+            Fat:
+            ${food.fat_g}g<br>
+
+            Fiber:
+            ${food.fiber_g}g
+        </div>
+        `;
+    });
+
+    document
+        .getElementById("results")
+        .innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
