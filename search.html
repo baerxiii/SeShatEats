@@ -95,6 +95,28 @@ h1{
     Type at least 2 characters to search.
 </div>
 
+    <select id="mealType">
+
+    <option value="Breakfast">
+        🍳 Breakfast
+    </option>
+
+    <option value="Lunch" selected>
+        🥪 Lunch
+    </option>
+
+    <option value="Dinner">
+        🍽 Dinner
+    </option>
+
+    <option value="Snack">
+        🍎 Snack
+    </option>
+
+</select>
+
+<br><br>
+
 <div id="results"></div>
 
 <script>
@@ -258,11 +280,19 @@ await supabaseClient
     const { error } =
         await supabaseClient
             .from("food_logs")
-            .insert({
-                food_id: food.id,
-                servings: 1,
-                meal_type: "Lunch"
-            });
+            const mealType =
+    document.getElementById(
+        "mealType"
+    ).value;
+
+const { error } =
+    await supabaseClient
+        .from("food_logs")
+        .insert({
+            food_id: food.id,
+            servings: 1,
+            meal_type: mealType
+        });
 
     if (error) {
 
