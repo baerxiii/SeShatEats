@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SeShatEats Importer</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script defer src="../js/supabase.js"></script>
+    <script defer src="../js/importer.js"></script>
+</head>
+
+<body>
+
+<h1>SeShatEats Nutrition Importer</h1>
+
+<label>
+    Restaurant Name
+</label>
+<br>
+
+<input
+    type="text"
+    id="restaurantName"
+    placeholder="Example: McDonald's"
+/>
+
+<br><br>
+
+<label>
+    CSV File
+</label>
+<br>
+
+<input
+    type="file"
+    id="csvFile"
+    accept=".csv"
+/>
+
+<br><br>
+
+<button id="importBtn">
+    Import Foods
+</button>
+
+<hr>
+
+<div id="status">
+    Waiting...
+</div>
+
+</body>
+</html>
