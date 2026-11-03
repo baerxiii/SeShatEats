@@ -101,16 +101,22 @@ async function loadDiary(){
         html += `
         <div class="card">
 
-            <strong>
-                ${food.item_name}
-            </strong>
+    <strong>
+        ${food.item_name}
+    </strong>
 
-            <br>
+    <br>
 
-            Calories:
-            ${food.calories}
+    Calories:
+    ${food.calories}
 
-        </div>
+    <br><br>
+
+    <button onclick="deleteLog(${log.id})">
+        🗑 Delete
+    </button>
+
+</div>
         `;
     });
 
@@ -133,6 +139,16 @@ async function loadDiary(){
     document
         .getElementById("fat")
         .innerText = fat.toFixed(1);
+}
+
+    async function deleteLog(id){
+
+    await supabaseClient
+        .from("food_logs")
+        .delete()
+        .eq("id", id);
+
+    location.reload();
 }
 
 </script>
