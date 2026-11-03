@@ -277,6 +277,34 @@ await supabaseClient
         return;
     }
 
+    const mealType =
+        document.getElementById(
+            "mealType"
+        ).value;
+
+    const { error } =
+        await supabaseClient
+            .from("food_logs")
+            .insert({
+                food_id: food.id,
+                servings: 1,
+                meal_type: mealType
+            });
+
+    if (error) {
+
+        console.error(error);
+
+        alert("Failed to add food.");
+
+        return;
+    }
+
+    alert(
+        `${food.item_name} added to diary`
+    );
+}
+
     const { error } =
         await supabaseClient
             .from("food_logs")
