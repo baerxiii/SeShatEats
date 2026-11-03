@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Diary - SeShatEats</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+.card{
+    background:#f5f5f5;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:10px;
+}
+
+#totals{
+    background:#2e7d32;
+    color:white;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📋 Today's Diary</h1>
+
+<div id="totals">
+
+Calories: <span id="calories">0</span><br>
+Protein: <span id="protein">0</span>g<br>
+Carbs: <span id="carbs">0</span>g<br>
+Fat: <span id="fat">0</span>g
+
+</div>
+
+<div id="foods"></div>
+
+<script>
+
+loadDiary();
+
+async function loadDiary(){
+
+    const today =
+        new Date()
+        .toISOString()
+        .split("T")[0];
+
+    const { data, error } =
+        await supabaseClient
+            .from("food_logs")
+            .select(`
+                *,
+                usda_foods(*)
+            `)
+            .eq("log_date", today);
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    let html = "";
+
+    data.forEach(log => {
+
+        const food =
+            log.usda_foods;
+
+        if(!food) return;
+
+        calories += Number(food.calories || 0);
+        protein += Number(food.protein_g || 0);
+        carbs += Number(food.carbs_g || 0);
+        fat += Number(food.fat_g || 0);
+
+        html += `
+        <div class="card">
+
+            <strong>
+                ${food.item_name}
+            </strong>
+
+            <br>
+
+            Calories:
+            ${food.calories}
+
+        </div>
+        `;
+    });
+
+    document
+        .getElementById("foods")
+        .innerHTML = html;
+
+    document
+        .getElementById("calories")
+        .innerText = calories.toFixed(0);
+
+    document
+        .getElementById("protein")
+        .innerText = protein.toFixed(1);
+
+    document
+        .getElementById("carbs")
+        .innerText = carbs.toFixed(1);
+
+    document
+        .getElementById("fat")
+        .innerText = fat.toFixed(1);
+}
+
+</script>
+
+</body>
+</html>
