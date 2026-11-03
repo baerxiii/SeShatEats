@@ -84,7 +84,10 @@ async function loadDiary(){
     let carbs = 0;
     let fat = 0;
 
-    let html = "";
+    let breakfast = "";
+let lunch = "";
+let dinner = "";
+let snack = "";
 
     data.forEach(log => {
 
@@ -123,11 +126,50 @@ async function loadDiary(){
 
 </div>
         `;
+
+
+if(log.meal_type === "Breakfast"){
+
+    breakfast += card;
+
+}
+else if(log.meal_type === "Lunch"){
+
+    lunch += card;
+
+}
+else if(log.meal_type === "Dinner"){
+
+    dinner += card;
+
+}
+else{
+
+    snack += card;
+
+}
+
+        
     });
 
     document
-        .getElementById("foods")
-        .innerHTML = html;
+    .getElementById("foods")
+    .innerHTML = `
+
+<h2>🍳 Breakfast</h2>
+${breakfast || "No foods logged."}
+
+<h2>🥪 Lunch</h2>
+${lunch || "No foods logged."}
+
+<h2>🍽 Dinner</h2>
+${dinner || "No foods logged."}
+
+<h2>🍎 Snacks</h2>
+${snack || "No foods logged."}
+
+`;
+
 
     document
         .getElementById("calories")
