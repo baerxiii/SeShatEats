@@ -267,7 +267,7 @@ async function openCategory(category){
 
         select.innerHTML += `
         <option value="${food.usda_food_id}">
-            ${food.search_name}
+            ${food.search_name} (${food.category})
         </option>
         `;
     });
