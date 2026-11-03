@@ -1,30 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>My Diary - SeShatEats</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 
-<a href="index.html">🏠 Dashboard</a>
-|
-<a href="diary.html">📋 Diary</a>
-    
 <style>
+
 body{
     font-family:Arial,sans-serif;
     max-width:1000px;
     margin:auto;
     padding:20px;
+    background:#f9f9f9;
 }
 
-.card{
-    background:#f5f5f5;
-    padding:15px;
-    border-radius:10px;
-    margin-bottom:10px;
+a{
+    color:#2e7d32;
+    text-decoration:none;
+    font-weight:bold;
 }
 
 #totals{
@@ -34,23 +32,67 @@ body{
     border-radius:10px;
     margin-bottom:20px;
 }
+
+.card{
+    background:white;
+    padding:15px;
+    margin-bottom:10px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.meal-section{
+    margin-bottom:30px;
+}
+
+button{
+    background:#d32f2f;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#b71c1c;
+}
+
 </style>
 </head>
-
 <body>
+
+<a href="index.html">🏠 Dashboard</a>
+|
+<a href="search.html">🔍 Search</a>
 
 <h1>📋 Today's Diary</h1>
 
 <div id="totals">
 
-Calories: <span id="calories">0</span><br>
-Protein: <span id="protein">0</span>g<br>
-Carbs: <span id="carbs">0</span>g<br>
-Fat: <span id="fat">0</span>g
+Calories:
+<span id="calories">0</span>
+
+<br>
+
+Protein:
+<span id="protein">0</span>g
+
+<br>
+
+Carbs:
+<span id="carbs">0</span>g
+
+<br>
+
+Fat:
+<span id="fat">0</span>g
 
 </div>
 
-<div id="foods"></div>
+<div id="foods">
+Loading...
+</div>
 
 <script>
 
@@ -60,8 +102,8 @@ async function loadDiary(){
 
     const today =
         new Date()
-        .toISOString()
-        .split("T")[0];
+            .toISOString()
+            .split("T")[0];
 
     const { data, error } =
         await supabaseClient
@@ -70,7 +112,11 @@ async function loadDiary(){
                 *,
                 usda_foods(*)
             `)
-            .eq("log_date", today);
+            .eq("log_date", today)
+            .order(
+                "created_at",
+                { ascending:false }
+            );
 
     if(error){
 
@@ -85,9 +131,9 @@ async function loadDiary(){
     let fat = 0;
 
     let breakfast = "";
-let lunch = "";
-let dinner = "";
-let snack = "";
+    let lunch = "";
+    let dinner = "";
+    let snack = "";
 
     data.forEach(log => {
 
@@ -96,96 +142,119 @@ let snack = "";
 
         if(!food) return;
 
-        calories += Number(food.calories || 0);
-        protein += Number(food.protein_g || 0);
-        carbs += Number(food.carbs_g || 0);
-        fat += Number(food.fat_g || 0);
+        calories +=
+            Number(food.calories || 0);
 
-        html += `
+        protein +=
+            Number(food.protein_g || 0);
+
+        carbs +=
+            Number(food.carbs_g || 0);
+
+        fat +=
+            Number(food.fat_g || 0);
+
+        const card = `
         <div class="card">
 
-    <strong>
-        ${food.item_name}
-    </strong>
+            <strong>
+                ${food.item_name}
+            </strong>
 
-    <br>
+            <br>
 
-    Meal:
-    ${log.meal_type}
+            Calories:
+            ${food.calories}
 
-    <br>
+            <br>
 
-    Calories:
-    ${food.calories}
+            Protein:
+            ${food.protein_g ?? 0}g
 
-    <br><br>
+            <br>
 
-    <button onclick="deleteLog(${log.id})">
-        🗑 Delete
-    </button>
+            Carbs:
+            ${food.carbs_g ?? 0}g
 
-</div>
+            <br>
+
+            Fat:
+            ${food.fat_g ?? 0}g
+
+            <br><br>
+
+            <button
+                onclick="deleteLog(${log.id})"
+            >
+                🗑 Delete
+            </button>
+
+        </div>
         `;
 
+        if(log.meal_type === "Breakfast"){
 
-if(log.meal_type === "Breakfast"){
+            breakfast += card;
 
-    breakfast += card;
+        } else if(log.meal_type === "Lunch"){
 
-}
-else if(log.meal_type === "Lunch"){
+            lunch += card;
 
-    lunch += card;
+        } else if(log.meal_type === "Dinner"){
 
-}
-else if(log.meal_type === "Dinner"){
+            dinner += card;
 
-    dinner += card;
+        } else {
 
-}
-else{
-
-    snack += card;
-
-}
-
-        
+            snack += card;
+        }
     });
 
     document
-    .getElementById("foods")
-    .innerHTML = `
+        .getElementById("foods")
+        .innerHTML = `
 
-<h2>🍳 Breakfast</h2>
-${breakfast || "No foods logged."}
+        <div class="meal-section">
+            <h2>🍳 Breakfast</h2>
+            ${breakfast || "No foods logged."}
+        </div>
 
-<h2>🥪 Lunch</h2>
-${lunch || "No foods logged."}
+        <div class="meal-section">
+            <h2>🥪 Lunch</h2>
+            ${lunch || "No foods logged."}
+        </div>
 
-<h2>🍽 Dinner</h2>
-${dinner || "No foods logged."}
+        <div class="meal-section">
+            <h2>🍽 Dinner</h2>
+            ${dinner || "No foods logged."}
+        </div>
 
-<h2>🍎 Snacks</h2>
-${snack || "No foods logged."}
+        <div class="meal-section">
+            <h2>🍎 Snacks</h2>
+            ${snack || "No foods logged."}
+        </div>
 
-`;
-
+    `;
 
     document
         .getElementById("calories")
-        .innerText = calories.toFixed(0);
+        .innerText =
+        calories.toFixed(0);
 
     document
         .getElementById("protein")
-        .innerText = protein.toFixed(1);
+        .innerText =
+        protein.toFixed(1);
 
     document
         .getElementById("carbs")
-        .innerText = carbs.toFixed(1);
+        .innerText =
+        carbs.toFixed(1);
 
     document
         .getElementById("fat")
-        .innerText = fat.toFixed(1);
+        .innerText =
+        fat.toFixed(1);
 }
 
 async function deleteLog(id){
