@@ -129,7 +129,7 @@ async function searchFoods(){
 
     const { data, error } =
         await supabaseClient
-            .from("usda_foods")
+            .from("common_foods")
             .select("*")
             .ilike(
                 "item_name",
