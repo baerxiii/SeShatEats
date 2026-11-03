@@ -127,7 +127,7 @@ async function searchFoods(){
     statusDiv.innerHTML =
         "Searching...";
 
-const { data } =
+const { data, error } =
 await supabaseClient
     .from("usda_foods")
     .select("*")
