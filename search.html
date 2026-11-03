@@ -4,20 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>SeShatEats</title>
+<title>SeShatEats Search</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 
-<a href="index.html">🏠 Dashboard</a>
-|
-<a href="diary.html">📋 Diary</a>
-    
 <style>
 
 body{
     font-family: Arial, sans-serif;
-    max-width: 1000px;
+    max-width:1000px;
     margin:auto;
     padding:20px;
     background:#f9f9f9;
@@ -27,13 +23,19 @@ h1{
     color:#2e7d32;
 }
 
+a{
+    font-weight:bold;
+    color:#2e7d32;
+    text-decoration:none;
+}
+
 #search{
     width:100%;
     padding:12px;
     font-size:18px;
     border-radius:8px;
     border:1px solid #ccc;
-    margin-bottom:20px;
+    margin-bottom:15px;
 }
 
 .food-card{
@@ -44,15 +46,9 @@ h1{
     box-shadow:0 2px 5px rgba(0,0,0,0.1);
 }
 
-.food-name{
-    font-size:20px;
-    font-weight:bold;
-    margin-bottom:10px;
-}
-
 .macros{
     display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(4,1fr);
     gap:10px;
     margin-top:10px;
 }
@@ -64,38 +60,43 @@ h1{
     text-align:center;
 }
 
-.label{
-    font-size:12px;
-    color:#555;
+button{
+    background:#2e7d32;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
 }
 
-.value{
-    font-size:18px;
-    font-weight:bold;
+button:hover{
+    background:#1b5e20;
 }
 
 #status{
+    margin-top:10px;
     color:#666;
-    margin-bottom:15px;
 }
 
 </style>
 </head>
 <body>
 
+<a href="index.html">🏠 Dashboard</a>
+|
+<a href="diary.html">📋 Diary</a>
+
 <h1>SeShatEats</h1>
 
 <input
     id="search"
     type="text"
-    placeholder="Search foods (chicken, eggs, rice, beef...)"
-/>
+    placeholder="Search foods..."
+>
 
-<div id="status">
-    Type at least 2 characters to search.
-</div>
+<br><br>
 
-    <select id="mealType">
+<select id="mealType">
 
     <option value="Breakfast">
         🍳 Breakfast
@@ -115,7 +116,11 @@ h1{
 
 </select>
 
-<br><br>
+<div id="status">
+    Type at least 2 characters to search.
+</div>
+
+<br>
 
 <div id="results"></div>
 
@@ -153,15 +158,15 @@ async function searchFoods(){
     statusDiv.innerHTML =
         "Searching...";
 
-const { data, error } =
-await supabaseClient
-    .from("usda_foods")
-    .select("*")
-    .ilike(
-        "item_name",
-        `${query}%`
-    )
-    .limit(25);
+    const { data, error } =
+        await supabaseClient
+            .from("usda_foods")
+            .select("*")
+            .ilike(
+                "item_name",
+                `${query}%`
+            )
+            .limit(25);
 
     if(error){
 
@@ -183,72 +188,41 @@ await supabaseClient
         html += `
         <div class="food-card">
 
-            <div class="food-name">
+            <strong>
                 ${food.item_name}
-            </div>
+            </strong>
 
-            <div>
-                Food Type:
-                ${food.data_type || "Unknown"}
-            </div>
+            <br><br>
 
             <div class="macros">
 
                 <div class="macro">
-                    <div class="label">
-                        Calories
-                    </div>
-
-                    <div class="value">
-                        ${food.calories ?? 0}
-                    </div>
+                    Calories<br>
+                    <strong>${food.calories ?? 0}</strong>
                 </div>
 
                 <div class="macro">
-                    <div class="label">
-                        Protein
-                    </div>
-
-                    <div class="value">
-                        ${food.protein_g ?? 0}g
-                    </div>
+                    Protein<br>
+                    <strong>${food.protein_g ?? 0}g</strong>
                 </div>
 
                 <div class="macro">
-                    <div class="label">
-                        Carbs
-                    </div>
-
-                    <div class="value">
-                        ${food.carbs_g ?? 0}g
-                    </div>
+                    Carbs<br>
+                    <strong>${food.carbs_g ?? 0}g</strong>
                 </div>
 
                 <div class="macro">
-                    <div class="label">
-                        Fat
-                    </div>
-
-                    <div class="value">
-                        ${food.fat_g ?? 0}g
-                    </div>
-                </div>
-
-                                <div class="macro">
-                    <div class="label">
-                        Fiber
-                    </div>
-
-                    <div class="value">
-                        ${food.fiber_g ?? 0}g
-                    </div>
+                    Fat<br>
+                    <strong>${food.fat_g ?? 0}g</strong>
                 </div>
 
             </div>
 
             <br>
 
-            <button onclick="addFood(${food.id})">
+            <button
+                onclick="addFood(${food.id})"
+            >
                 ➕ Add To Diary
             </button>
 
@@ -259,7 +233,7 @@ await supabaseClient
     resultsDiv.innerHTML = html;
 }
 
-    async function addFood(foodId) {
+async function addFood(foodId){
 
     const { data: food, error: foodError } =
         await supabaseClient
@@ -268,7 +242,7 @@ await supabaseClient
             .eq("id", foodId)
             .single();
 
-    if (foodError) {
+    if(foodError){
 
         console.error(foodError);
 
@@ -291,7 +265,7 @@ await supabaseClient
                 meal_type: mealType
             });
 
-    if (error) {
+    if(error){
 
         console.error(error);
 
@@ -301,66 +275,7 @@ await supabaseClient
     }
 
     alert(
-        `${food.item_name} added to diary`
-    );
-}
-
-    const mealType =
-        document.getElementById(
-            "mealType"
-        ).value;
-
-    const { error } =
-        await supabaseClient
-            .from("food_logs")
-            .insert({
-                food_id: food.id,
-                servings: 1,
-                meal_type: mealType
-            });
-
-    if (error) {
-
-        console.error(error);
-
-        alert("Failed to add food.");
-
-        return;
-    }
-
-    alert(
-        `${food.item_name} added to diary`
-    );
-}
-
-    const { error } =
-        await supabaseClient
-            .from("food_logs")
-            const mealType =
-    document.getElementById(
-        "mealType"
-    ).value;
-
-const { error } =
-    await supabaseClient
-        .from("food_logs")
-        .insert({
-            food_id: food.id,
-            servings: 1,
-            meal_type: mealType
-        });
-
-    if (error) {
-
-        console.error(error);
-
-        alert("Failed to add food.");
-
-        return;
-    }
-
-    alert(
-        `${food.item_name} added to diary`
+        `${food.item_name} added to ${mealType}`
     );
 }
 
