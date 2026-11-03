@@ -127,15 +127,15 @@ async function searchFoods(){
     statusDiv.innerHTML =
         "Searching...";
 
-    const { data, error } =
-        await supabaseClient
-            .from("common_foods")
-            .select("*")
-            .ilike(
-                "item_name",
-                `%${query}%`
-            )
-            .limit(25);
+const { data } =
+await supabaseClient
+    .from("usda_foods")
+    .select("*")
+    .ilike(
+        "item_name",
+        `${query}%`
+    )
+    .limit(25);
 
     if(error){
 
