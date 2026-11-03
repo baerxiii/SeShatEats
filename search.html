@@ -1,33 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SeShatEats Search</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>SeShatEats</title>
 
-    <script src="js/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 
-    <style>
-        body{
-            font-family:Arial,sans-serif;
-            max-width:1000px;
-            margin:auto;
-            padding:20px;
-        }
+<style>
 
-        input{
-            width:100%;
-            padding:10px;
-            font-size:18px;
-        }
+body{
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin:auto;
+    padding:20px;
+    background:#f9f9f9;
+}
 
-        .food{
-            border:1px solid #ddd;
-            border-radius:8px;
-            padding:12px;
-            margin-top:10px;
-        }
-    </style>
+h1{
+    color:#2e7d32;
+}
+
+#search{
+    width:100%;
+    padding:12px;
+    font-size:18px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    margin-bottom:20px;
+}
+
+.food-card{
+    background:white;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.food-name{
+    font-size:20px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.macros{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:10px;
+    margin-top:10px;
+}
+
+.macro{
+    background:#f1f1f1;
+    padding:10px;
+    border-radius:8px;
+    text-align:center;
+}
+
+.label{
+    font-size:12px;
+    color:#555;
+}
+
+.value{
+    font-size:18px;
+    font-weight:bold;
+}
+
+#status{
+    color:#666;
+    margin-bottom:15px;
+}
+
+</style>
 </head>
 <body>
 
@@ -35,8 +83,13 @@
 
 <input
     id="search"
-    placeholder="Search foods..."
->
+    type="text"
+    placeholder="Search foods (chicken, eggs, rice, beef...)"
+/>
+
+<div id="status">
+    Type at least 2 characters to search.
+</div>
 
 <div id="results"></div>
 
@@ -55,54 +108,123 @@ async function searchFoods(){
     const query =
         searchBox.value.trim();
 
+    const resultsDiv =
+        document.getElementById("results");
+
+    const statusDiv =
+        document.getElementById("status");
+
     if(query.length < 2){
-        document.getElementById("results").innerHTML = "";
+
+        resultsDiv.innerHTML = "";
+
+        statusDiv.innerHTML =
+            "Type at least 2 characters to search.";
+
         return;
     }
+
+    statusDiv.innerHTML =
+        "Searching...";
 
     const { data, error } =
         await supabaseClient
-        .from("usda_foods")
-        .select("*")
-        .ilike(
-            "item_name",
-            `%${query}%`
-        )
-        .limit(25);
+            .from("usda_foods")
+            .select("*")
+            .ilike(
+                "item_name",
+                `%${query}%`
+            )
+            .limit(25);
 
     if(error){
+
         console.error(error);
+
+        statusDiv.innerHTML =
+            "Search failed.";
+
         return;
     }
+
+    statusDiv.innerHTML =
+        `${data.length} food(s) found`;
 
     let html = "";
 
     data.forEach(food => {
 
         html += `
-        <div class="food">
-            <h3>${food.item_name}</h3>
+        <div class="food-card">
 
-            Calories: ${food.calories}<br>
+            <div class="food-name">
+                ${food.item_name}
+            </div>
 
-            Protein:
-            ${food.protein_g}g<br>
+            <div>
+                Food Type:
+                ${food.data_type || "Unknown"}
+            </div>
 
-            Carbs:
-            ${food.carbs_g}g<br>
+            <div class="macros">
 
-            Fat:
-            ${food.fat_g}g<br>
+                <div class="macro">
+                    <div class="label">
+                        Calories
+                    </div>
 
-            Fiber:
-            ${food.fiber_g}g
+                    <div class="value">
+                        ${food.calories ?? 0}
+                    </div>
+                </div>
+
+                <div class="macro">
+                    <div class="label">
+                        Protein
+                    </div>
+
+                    <div class="value">
+                        ${food.protein_g ?? 0}g
+                    </div>
+                </div>
+
+                <div class="macro">
+                    <div class="label">
+                        Carbs
+                    </div>
+
+                    <div class="value">
+                        ${food.carbs_g ?? 0}g
+                    </div>
+                </div>
+
+                <div class="macro">
+                    <div class="label">
+                        Fat
+                    </div>
+
+                    <div class="value">
+                        ${food.fat_g ?? 0}g
+                    </div>
+                </div>
+
+                <div class="macro">
+                    <div class="label">
+                        Fiber
+                    </div>
+
+                    <div class="value">
+                        ${food.fiber_g ?? 0}g
+                    </div>
+                </div>
+
+            </div>
+
         </div>
         `;
     });
 
-    document
-        .getElementById("results")
-        .innerHTML = html;
+    resultsDiv.innerHTML = html;
 }
 
 </script>
