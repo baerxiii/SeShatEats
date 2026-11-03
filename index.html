@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SeShatEats Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial,sans-serif;
+    margin:0;
+    padding:20px;
+    background:#f4f7f4;
+    max-width:1200px;
+    margin:auto;
+}
+
+h1{
+    color:#2e7d32;
+}
+
+a{
+    text-decoration:none;
+    color:#2e7d32;
+    font-weight:bold;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);
+}
+
+.big-number{
+    font-size:42px;
+    font-weight:bold;
+}
+
+.macro{
+    margin-top:10px;
+    font-size:18px;
+}
+
+.quick-food{
+    border:none;
+    background:#2e7d32;
+    color:white;
+    padding:12px;
+    border-radius:8px;
+    margin:5px;
+    cursor:pointer;
+}
+
+.quick-food:hover{
+    background:#1b5e20;
+}
+
+.log-item{
+    padding:10px;
+    border-bottom:1px solid #eee;
+}
+
+.nav{
+    margin-bottom:20px;
+}
+
+</style>
+</head>
+<body>
+
+<h1>🍎 SeShatEats</h1>
+
+<div class="nav">
+
+<a href="index.html">
+🏠 Dashboard
+</a>
+
+|
+
+<a href="search.html">
+🔍 Search Foods
+</a>
+
+|
+
+<a href="diary.html">
+📋 Diary
+</a>
+
+</div>
+
+<div class="grid">
+
+<div class="card">
+
+<h2>Today's Calories</h2>
+
+<div
+    id="totalCalories"
+    class="big-number"
+>
+0
+</div>
+
+<div class="macro">
+Protein:
+<span id="totalProtein">
+0
+</span>g
+</div>
+
+<div class="macro">
+Carbs:
+<span id="totalCarbs">
+0
+</span>g
+</div>
+
+<div class="macro">
+Fat:
+<span id="totalFat">
+0
+</span>g
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>Daily Goal</h2>
+
+<div class="big-number">
+2000
+</div>
+
+<div>
+Target Calories
+</div>
+
+</div>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h2>🔥 Quick Add</h2>
+
+<button
+class="quick-food"
+onclick="quickAdd('egg')"
+>
+🥚 Egg
+</button>
+
+<button
+class="quick-food"
+onclick="quickAdd('chicken')"
+>
+🍗 Chicken
+</button>
+
+<button
+class="quick-food"
+onclick="quickAdd('beef')"
+>
+🥩 Beef
+</button>
+
+<button
+class="quick-food"
+onclick="quickAdd('rice')"
+>
+🍚 Rice
+</button>
+
+<button
+class="quick-food"
+onclick="quickAdd('banana')"
+>
+🍌 Banana
+</button>
+
+<button
+class="quick-food"
+onclick="quickAdd('milk')"
+>
+🥛 Milk
+</button>
+
+</div>
+
+<br>
+
+<div class="card">
+
+<h2>Today's Foods</h2>
+
+<div id="todayFoods">
+
+No foods logged today.
+
+</div>
+
+</div>
+
+<script>
+
+loadDashboard();
+
+async function loadDashboard(){
+
+    const { data: logs, error } =
+        await supabaseClient
+            .from("food_logs")
+            .select("*")
+            .order(
+                "created_at",
+                { ascending:false }
+            );
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    let html = "";
+
+    for(const log of logs){
+
+        const { data: food } =
+            await supabaseClient
+                .from("usda_foods")
+                .select("*")
+                .eq(
+                    "id",
+                    log.food_id
+                )
+                .single();
+
+        if(!food){
+            continue;
+        }
+
+        calories +=
+            Number(food.calories || 0);
+
+        protein +=
+            Number(food.protein_g || 0);
+
+        carbs +=
+            Number(food.carbs_g || 0);
+
+        fat +=
+            Number(food.fat_g || 0);
+
+        html += `
+        <div class="log-item">
+
+            <strong>
+                ${food.item_name}
+            </strong>
+
+            <br>
+
+            ${food.calories} calories
+
+        </div>
+        `;
+    }
+
+    document
+        .getElementById(
+            "todayFoods"
+        )
+        .innerHTML =
+        html || "No foods logged today.";
+
+    document
+        .getElementById(
+            "totalCalories"
+        )
+        .innerText =
+        calories.toFixed(0);
+
+    document
+        .getElementById(
+            "totalProtein"
+        )
+        .innerText =
+        protein.toFixed(1);
+
+    document
+        .getElementById(
+            "totalCarbs"
+        )
+        .innerText =
+        carbs.toFixed(1);
+
+    document
+        .getElementById(
+            "totalFat"
+        )
+        .innerText =
+        fat.toFixed(1);
+}
+
+async function quickAdd(searchTerm){
+
+    const { data } =
+        await supabaseClient
+            .from("usda_foods")
+            .select("*")
+            .ilike(
+                "item_name",
+                `${searchTerm}%`
+            )
+            .limit(1);
+
+    if(!data || data.length === 0){
+
+        alert(
+            "Food not found."
+        );
+
+        return;
+    }
+
+    const food = data[0];
+
+    await supabaseClient
+        .from("food_logs")
+        .insert({
+            food_id: food.id,
+            servings: 1,
+            meal_type: "Lunch"
+        });
+
+    location.reload();
+}
+
+</script>
+
+</body>
+</html>
