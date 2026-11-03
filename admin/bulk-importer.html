@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>SeShatEats Bulk Importer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    background:#121212;
+    color:white;
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+h1{
+    color:#4CAF50;
+}
+
+.card{
+    background:#1e1e1e;
+    padding:20px;
+    margin-bottom:20px;
+    border-radius:10px;
+}
+
+button{
+    background:#4CAF50;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#43a047;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th,
+td{
+    border:1px solid #333;
+    padding:8px;
+    text-align:left;
+}
+
+th{
+    background:#222;
+}
+
+#status{
+    margin-top:15px;
+    color:#4CAF50;
+    font-weight:bold;
+}
+
+.preview{
+    max-height:500px;
+    overflow:auto;
+}
+</style>
+</head>
+<body>
+
+<h1>SeShatEats Bulk Food Importer</h1>
+
+<div class="card">
+
+<h2>Select JSON File</h2>
+
+<input
+    type="file"
+    id="jsonFile"
+    accept=".json"
+/>
+
+<br><br>
+
+<button id="previewBtn">
+    Preview Data
+</button>
+
+<button id="importBtn">
+    Import To Supabase
+</button>
+
+<div id="status"></div>
+
+</div>
+
+<div class="card preview">
+
+<h2>Preview</h2>
+
+<div id="previewArea">
+
+No data loaded.
+
+</div>
+
+</div>
+
+<script>
+
+/*
+--------------------------------------------------
+SUPABASE
+--------------------------------------------------
+*/
+
+const SUPABASE_URL =
+"PUT_YOUR_SUPABASE_URL";
+
+const SUPABASE_KEY =
+"PUT_YOUR_SUPABASE_ANON_KEY";
+
+const supabaseClient =
+supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+/*
+--------------------------------------------------
+GLOBAL
+--------------------------------------------------
+*/
+
+let importedFoods = [];
+
+/*
+--------------------------------------------------
+PREVIEW
+--------------------------------------------------
+*/
+
+document
+.getElementById("previewBtn")
+.addEventListener("click", previewFile);
+
+async function previewFile(){
+
+    const file =
+        document
+        .getElementById("jsonFile")
+        .files[0];
+
+    if(!file){
+        alert("Select a JSON file");
+        return;
+    }
+
+    const text =
+        await file.text();
+
+    importedFoods =
+        JSON.parse(text);
+
+    renderPreview(importedFoods);
+}
+
+/*
+--------------------------------------------------
+RENDER
+--------------------------------------------------
+*/
+
+function renderPreview(foods){
+
+    if(!foods.length){
+
+        document
+            .getElementById("previewArea")
+            .innerHTML =
+            "No foods found.";
+
+        return;
+    }
+
+    let html = `
+    <p>
+    ${foods.length} foods found
+    </p>
+
+    <table>
+
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Brand</th>
+        <th>Calories</th>
+        <th>Protein</th>
+        <th>Carbs</th>
+        <th>Fat</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    `;
+
+    foods.slice(0,100).forEach(food => {
+
+        html += `
+        <tr>
+
+            <td>${food.item_name || ""}</td>
+
+            <td>${food.brand || ""}</td>
+
+            <td>${food.calories || ""}</td>
+
+            <td>${food.protein_g || ""}</td>
+
+            <td>${food.carbs_g || ""}</td>
+
+            <td>${food.fat_g || ""}</td>
+
+        </tr>
+        `;
+    });
+
+    html += `
+    </tbody>
+    </table>
+    `;
+
+    document
+        .getElementById("previewArea")
+        .innerHTML = html;
+}
+
+/*
+--------------------------------------------------
+IMPORT
+--------------------------------------------------
+*/
+
+document
+.getElementById("importBtn")
+.addEventListener("click", importFoods);
+
+async function importFoods(){
+
+    if(importedFoods.length === 0){
+
+        alert("Load data first");
+
+        return;
+    }
+
+    let success = 0;
+
+    for(const food of importedFoods){
+
+        const { error } =
+            await supabaseClient
+            .from("foods")
+            .insert({
+
+                item_name:
+                    food.item_name,
+
+                brand:
+                    food.brand || null,
+
+                category:
+                    food.category || null,
+
+                calories:
+                    food.calories || null,
+
+                protein_g:
+                    food.protein_g || null,
+
+                carbs_g:
+                    food.carbs_g || null,
+
+                fat_g:
+                    food.fat_g || null,
+
+                fibre_g:
+                    food.fibre_g || null,
+
+                sugar_g:
+                    food.sugar_g || null,
+
+                sodium_mg:
+                    food.sodium_mg || null,
+
+                data_source:
+                    food.data_source || "Import"
+
+            });
+
+        if(!error){
+            success++;
+        }
+    }
+
+    document
+        .getElementById("status")
+        .innerHTML =
+        `Imported ${success} foods`;
+}
+</script>
+
+</body>
+</html>
