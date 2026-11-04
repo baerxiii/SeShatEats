@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>SeShatEats Admin Foods</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+
+body{
+    font-family:Arial;
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.card{
+    border:1px solid #ddd;
+    padding:15px;
+    margin:10px 0;
+    border-radius:10px;
+}
+
+input,
+select{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+}
+
+button{
+    padding:10px 15px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Food Curator</h1>
+
+<input
+    id="search"
+    placeholder="Search USDA foods"
+/>
+
+<button onclick="searchFoods()">
+Search
+</button>
+
+<hr>
+
+<div id="results"></div>
+
+<script>
+
+async function searchFoods(){
+
+    const query =
+        document
+            .getElementById("search")
+            .value;
+
+    const { data } =
+        await supabaseClient
+            .from("usda_foods")
+            .select("*")
+            .ilike(
+                "item_name",
+                `%${query}%`
+            )
+            .limit(25);
+
+    let html = "";
+
+    data.forEach(food => {
+
+        html += `
+        <div class="card">
+
+            <strong>
+                ${food.item_name}
+            </strong>
+
+            <br><br>
+
+            <input
+                id="name_${food.id}"
+                placeholder="Friendly Name"
+            >
+
+            <select
+                id="cat_${food.id}"
+            >
+
+                <option>
+                    Protein
+                </option>
+
+                <option>
+                    Dairy
+                </option>
+
+                <option>
+                    Fruit
+                </option>
+
+                <option>
+                    Vegetable
+                </option>
+
+                <option>
+                    Grain
+                </option>
+
+                <option>
+                    Seafood
+                </option>
+
+            </select>
+
+            <button
+                onclick="saveFood(${food.id})"
+            >
+                Save
+            </button>
+
+        </div>
+        `;
+    });
+
+    document
+        .getElementById("results")
+        .innerHTML = html;
+}
+
+async function saveFood(id){
+
+    const name =
+        document
+            .getElementById(
+                `name_${id}`
+            )
+            .value;
+
+    const category =
+        document
+            .getElementById(
+                `cat_${id}`
+            )
+            .value;
+
+    const { error } =
+        await supabaseClient
+            .from("curated_foods")
+            .insert({
+                usda_food_id:id,
+                search_name:name,
+                category:category
+            });
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+    }
+
+    alert("Food Added");
+}
+
+</script>
+
+</body>
+</html>
