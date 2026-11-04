@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Recipe Builder - SeShatEats</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+
+body{
+    font-family:Arial,sans-serif;
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+    background:#f5f5f5;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:20px;
+    box-shadow:0 2px 5px rgba(0,0,0,.1);
+}
+
+input,
+select{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+}
+
+button{
+    padding:10px 15px;
+    cursor:pointer;
+}
+
+.ingredient{
+    border-bottom:1px solid #ddd;
+    padding:10px 0;
+}
+
+#nutrition{
+    background:#2e7d32;
+    color:white;
+}
+
+.remove-btn{
+    background:#d32f2f;
+    color:white;
+    border:none;
+    border-radius:6px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<a href="index.html">🏠 Dashboard</a>
+|
+<a href="diary.html">📋 Diary</a>
+
+<h1>🍲 Recipe Builder</h1>
+
+<div class="card">
+
+<label>Recipe Name</label>
+
+<input
+    id="recipeName"
+    placeholder="Chicken Rice Bowl"
+/>
+
+<label>Servings</label>
+
+<input
+    id="recipeServings"
+    type="number"
+    value="4"
+    min="1"
+/>
+
+<button onclick="createRecipe()">
+Create Recipe
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>Add Ingredients</h2>
+
+<input
+    id="foodSearch"
+    placeholder="Search curated foods..."
+/>
+
+<button onclick="searchFoods()">
+Search
+</button>
+
+<div id="searchResults"></div>
+
+</div>
+
+<div class="card">
+
+<h2>Ingredients</h2>
+
+<div id="ingredients">
+No ingredients yet.
+</div>
+
+</div>
+
+<div
+class="card"
+id="nutrition"
+>
+
+<h2>Recipe Nutrition</h2>
+
+<label>
+Save Recipe Servings
+</label>
+
+<input
+    id="recipeLogServings"
+    type="number"
+    value="1"
+    step="0.5"
+/>
+
+<label>
+Meal
+</label>
+
+<select id="recipeMeal">
+
+<option value="Breakfast">
+🍳 Breakfast
+</option>
+
+<option value="Lunch" selected>
+🥪 Lunch
+</option>
+
+<option value="Dinner">
+🍽 Dinner
+</option>
+
+<option value="Snack">
+🍎 Snack
+</option>
+
+</select>
+
+<button onclick="saveRecipeToDiary()">
+🍲 Save Recipe To Diary
+</button>
+
+<hr>
+
+<h3>Total Recipe</h3>
+
+Calories:
+<span id="calories">0</span>
+
+<br>
+
+Protein:
+<span id="protein">0</span>g
+
+<br>
+
+Carbs:
+<span id="carbs">0</span>g
+
+<br>
+
+Fat:
+<span id="fat">0</span>g
+
+<hr>
+
+<h3>Per Serving</h3>
+
+Calories:
+<span id="servingCalories">0</span>
+
+<br>
+
+Protein:
+<span id="servingProtein">0</span>g
+
+<br>
+
+Carbs:
+<span id="servingCarbs">0</span>g
+
+<br>
+
+Fat:
+<span id="servingFat">0</span>g
+
+</div>
+
+<script>
+
+let currentRecipeId = null;
+
+async function createRecipe(){
+
+    const recipeName =
+        document
+            .getElementById(
+                "recipeName"
+            )
+            .value;
+
+    const servings =
+        Number(
+            document
+                .getElementById(
+                    "recipeServings"
+                )
+                .value
+        );
+
+    if(!recipeName.trim()){
+
+        alert(
+            "Enter a recipe name."
+        );
+
+        return;
+    }
+
+    if(servings <= 0){
+
+        alert(
+            "Servings must be greater than zero."
+        );
+
+        return;
+    }
+
+    const { data, error } =
+        await supabaseClient
+            .from("recipes")
+            .insert({
+                recipe_name:
+                    recipeName,
+
+                servings:
+                    servings
+            })
+            .select()
+            .single();
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+    }
+
+    currentRecipeId =
+        data.id;
+
+    alert(
+        "Recipe Created"
+    );
+
+    loadIngredients();
+}
+
+async function searchFoods(){
+
+    const query =
+        document
+            .getElementById(
+                "foodSearch"
+            )
+            .value;
+
+    const { data } =
+        await supabaseClient
+            .from("curated_foods")
+            .select("*")
+            .ilike(
+                "search_name",
+                `%${query}%`
+            );
+
+    let html = "";
+
+    data.forEach(food => {
+
+        html += `
+        <div class="ingredient">
+
+            <strong>
+                ${food.search_name}
+            </strong>
+
+            <br>
+
+            Grams
+
+            <input
+                id="grams_${food.id}"
+                type="number"
+                value="100"
+            >
+
+            <button
+                onclick="
+                    addIngredient(
+                        ${food.usda_food_id},
+                        ${food.id}
+                    )
+                "
+            >
+                Add
+            </button>
+
+        </div>
+        `;
+    });
+
+    document
+        .getElementById(
+            "searchResults"
+        )
+        .innerHTML =
+        html;
+}
+
+async function addIngredient(
+    foodId,
+    foodKey
+){
+
+    if(!currentRecipeId){
+
+        alert(
+            "Create recipe first."
+        );
+
+        return;
+    }
+
+    const grams =
+        Number(
+            document
+                .getElementById(
+                    `grams_${foodKey}`
+                )
+                .value
+        );
+
+    const { error } =
+        await supabaseClient
+            .from("recipe_ingredients")
+            .insert({
+
+                recipe_id:
+                    currentRecipeId,
+
+                food_id:
+                    foodId,
+
+                grams:
+                    grams
+            });
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+    }
+
+    loadIngredients();
+}
+
+async function removeIngredient(id){
+
+    const { error } =
+        await supabaseClient
+            .from("recipe_ingredients")
+            .delete()
+            .eq("id", id);
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+    }
+
+    loadIngredients();
+}
+
+async function loadIngredients(){
+
+    if(!currentRecipeId)
+        return;
+
+    const { data } =
+        await supabaseClient
+            .from("recipe_ingredients")
+            .select("*")
+            .eq(
+                "recipe_id",
+                currentRecipeId
+            );
+
+    let html = "";
+
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    for(const ingredient of data){
+
+        const { data: food } =
+            await supabaseClient
+                .from("usda_foods")
+                .select("*")
+                .eq(
+                    "id",
+                    ingredient.food_id
+                )
+                .single();
+
+        if(!food)
+            continue;
+
+        const factor =
+            ingredient.grams / 100;
+
+        calories += Number(food.calories || 0) * factor;
+        protein += Number(food.protein_g || 0) * factor;
+        carbs += Number(food.carbs_g || 0) * factor;
+        fat += Number(food.fat_g || 0) * factor;
+
+        html += `
+        <div class="ingredient">
+
+            <strong>
+                ${food.item_name}
+            </strong>
+
+            -
+
+            ${ingredient.grams}g
+
+            <br><br>
+
+            <button
+                class="remove-btn"
+                onclick="removeIngredient(${ingredient.id})"
+            >
+                🗑 Remove
+            </button>
+
+        </div>
+        `;
+    }
+
+    document
+        .getElementById(
+            "ingredients"
+        )
+        .innerHTML =
+        html || "No ingredients.";
+
+    document
+        .getElementById("calories")
+        .innerText =
+        calories.toFixed(0);
+
+    document
+        .getElementById("protein")
+        .innerText =
+        protein.toFixed(1);
+
+    document
+        .getElementById("carbs")
+        .innerText =
+        carbs.toFixed(1);
+
+    document
+        .getElementById("fat")
+        .innerText =
+        fat.toFixed(1);
+
+    const recipeServings =
+        Number(
+            document
+                .getElementById(
+                    "recipeServings"
+                )
+                .value || 1
+        );
+
+    document
+        .getElementById(
+            "servingCalories"
+        )
+        .innerText =
+        (calories / recipeServings)
+            .toFixed(0);
+
+    document
+        .getElementById(
+            "servingProtein"
+        )
+        .innerText =
+        (protein / recipeServings)
+            .toFixed(1);
+
+    document
+        .getElementById(
+            "servingCarbs"
+        )
+        .innerText =
+        (carbs / recipeServings)
+            .toFixed(1);
+
+    document
+        .getElementById(
+            "servingFat"
+        )
+        .innerText =
+        (fat / recipeServings)
+            .toFixed(1);
+}
+
+async function saveRecipeToDiary(){
+
+    if(!currentRecipeId){
+
+        alert(
+            "Create a recipe first."
+        );
+
+        return;
+    }
+
+    const servings =
+        Number(
+            document
+                .getElementById(
+                    "recipeLogServings"
+                )
+                .value
+        );
+
+    const mealType =
+        document
+            .getElementById(
+                "recipeMeal"
+            )
+            .value;
+
+    const { error } =
+        await supabaseClient
+            .from("recipe_logs")
+            .insert({
+
+                recipe_id:
+                    currentRecipeId,
+
+                servings:
+                    servings,
+
+                meal_type:
+                    mealType
+
+            });
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+    }
+
+    alert(
+        "Recipe saved to diary."
+    );
+}
+
+</script>
+
+</body>
+</html>
