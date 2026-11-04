@@ -10,22 +10,26 @@ python -m http.server 8000
 
 Open `http://localhost:8000`. Configure `js/supabase.js` with the project URL and a publishable/anon key only. Never expose a service-role key in browser code.
 
-## Search and log foods
+## Authentication and diary
 
-The Food Search page queries `usda_foods` and `restaurant_foods` independently, in parallel, and labels each result. Restaurant items are searched by both menu item name and restaurant name; active records (`active = true`) are displayed. The page displays per-source read errors instead of silently showing only one catalogue.
+Food Search supports Supabase email/password sign-up and sign-in using the existing Supabase Auth project. Food logs are inserted with the signed-in user's `user_id`; diary queries are scoped to that user. Apply `supabase/migrations/202611040003_auth_diary_and_catalog_read.sql` in the Supabase SQL Editor to add owner-based food-log policies and read policies for the food catalogs.
 
-For restaurant diary logging, apply `supabase/migrations/202611040002_restaurant_food_logs.sql` in the Supabase SQL Editor. It adds `food_logs.restaurant_food_id`, keeps the existing USDA `food_id` foreign key, and enforces that a food log references exactly one source. Restaurant nutrition values are per menu serving; `servings` is the number of menu servings. USDA nutrition fields are per 100 g, and `servings` is the number of 100 g portions.
+If email confirmation is enabled in Supabase Auth, a new account must confirm its email before signing in. Check the Supabase Auth URL configuration so the deployed site URL is an allowed redirect/site URL.
 
-If restaurant results do not appear, verify `restaurant_foods` is exposed in the Supabase `public` schema and that SELECT is granted to the app's role (usually `anon` or `authenticated`, depending on the session). The UI reports individual query errors. If diary relationship joins are unavailable after the migration, refresh the Supabase PostgREST schema cache.
+## Food lookup
 
-## Other pages
+Food Search looks up friendly names from `curated_foods` joined in the app to `usda_foods`, and searches `restaurant_foods` by both item name and restaurant name. Restaurant foods are served per menu item; curated USDA foods use the food-table values per 100 g. Search displays readable permission errors rather than silently dropping a catalog.
 
-- `index.html`: today's nutrition and recent entries.
-- `diary.html`: meal-grouped food and recipe logs with portion controls.
+To log restaurant entries, `food_logs.restaurant_food_id` must exist and `food_id` must allow NULL. Apply `supabase/migrations/202611040002_restaurant_food_logs.sql` if that change has not already been made. Each food log must reference exactly one source.
+
+## Pages
+
+- `index.html`: dashboard and today's recent entries.
+- `search.html`: curated and restaurant food search plus diary logging.
+- `diary.html`: meal-grouped entries, totals, portion adjustments, and removal.
 - `recipes.html`: recipe builder using USDA foods as gram-based ingredients.
-- `admin-foods.html`: curate USDA quick-add foods.
-- `admin/importer.html`: links to the safe data-management workflows.
+- `admin-foods.html`: manage curated USDA quick-add foods.
 
-## Data and security
+## Security
 
-The app also expects `curated_foods`, `recipes`, `recipe_ingredients`, `recipe_logs`, and the `recipe_totals` view. Protect private diary data with Supabase Row Level Security and ownership policies.
+The food catalog is publicly readable; diary rows are intended to be owner-scoped. Review existing Supabase RLS policies because permissive policies combine with OR and may override the intended restriction. Never expose a service-role key in frontend code.

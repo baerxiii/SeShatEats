@@ -5,6 +5,7 @@
   <title>Food search — SeShatEats</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
   <link rel="stylesheet" href="css/style.css">
   <style>
     .search-panel { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 12px; align-items: end; }
@@ -12,28 +13,30 @@
     .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 8px 16px; }
     .restaurant-meta { color: var(--muted); }
     .source-error { border-color: #efc3bd; background: #fff8f6; }
+    .auth-panel-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
     @media (max-width: 620px) { .search-panel { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a><a href="search.html" aria-current="page">Search</a><a href="diary.html">Diary</a><a href="recipes.html">Recipes</a></nav>
-  <header><p>THE FOOD LIBRARY</p><h1>Find your next meal.</h1><p>Search everyday USDA foods and restaurant menu items together.</p></header>
+  <header><p>THE FOOD LIBRARY</p><h1>Find your next meal.</h1><p>Search your curated foods and restaurant menu items together.</p></header>
+  <section class="card" id="authPanel" aria-live="polite">Checking account…</section>
   <section class="card">
     <div class="search-panel">
       <div class="field"><label for="search">Food or restaurant</label><input id="search" type="search" placeholder="Try ‘burger’ or a restaurant name" autocomplete="off"></div>
-      <div class="field"><label for="sourceFilter">Search in</label><select id="sourceFilter"><option value="all">All foods</option><option value="restaurant">Restaurant foods</option><option value="usda">USDA foods</option></select></div>
+      <div class="field"><label for="sourceFilter">Search in</label><select id="sourceFilter"><option value="all">All foods</option><option value="restaurant">Restaurant foods</option><option value="curated">My curated foods</option></select></div>
       <div class="field"><label for="mealType">Add to meal</label><select id="mealType"><option value="Breakfast">🍳 Breakfast</option><option value="Lunch" selected>🥪 Lunch</option><option value="Dinner">🍽 Dinner</option><option value="Snack">🍎 Snack</option></select></div>
     </div>
-    <p id="status" role="status" aria-live="polite">Enter at least 2 characters to search both catalogs.</p>
+    <p id="status" role="status" aria-live="polite">Enter at least 2 characters to search.</p>
   </section>
   <main id="results" class="result-grid" aria-live="polite"></main>
 <script>
+  renderAuthPanel('authPanel');
   const searchBox = document.getElementById('search');
   const resultsDiv = document.getElementById('results');
   const statusDiv = document.getElementById('status');
   let debounceTimer;
   let requestNumber = 0;
-
   function escapeHtml(value = '') { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function displayNumber(value) { const n = Number(value); return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '0'; }
   searchBox.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(searchFoods, 220); });
@@ -42,50 +45,63 @@
   async function searchFoods() {
     const query = searchBox.value.trim();
     const requestId = ++requestNumber;
-    if (query.length < 2) { resultsDiv.replaceChildren(); statusDiv.textContent = 'Enter at least 2 characters to search both catalogs.'; return; }
-    statusDiv.textContent = 'Searching restaurant and USDA foods…';
+    if (query.length < 2) { resultsDiv.replaceChildren(); statusDiv.textContent = 'Enter at least 2 characters to search.'; return; }
+    statusDiv.textContent = 'Searching curated and restaurant foods…';
     resultsDiv.replaceChildren();
     const pattern = `%${query}%`;
     const filter = document.getElementById('sourceFilter').value;
     const requests = [];
-    if (filter !== 'restaurant') requests.push(supabaseClient.from('usda_foods').select('id,item_name,calories,protein_g,carbs_g,fat_g').ilike('item_name', pattern).limit(30).then(r => ({ source: 'USDA', ...r })));
-    if (filter !== 'usda') {
-      // Separate searches avoid PostgREST .or() parsing issues and find restaurant names as well as menu items.
-      requests.push(supabaseClient.from('restaurant_foods').select('id,restaurant,category,item_name,calories,protein_g,carbs_g,fat_g,serving_size,source_url').eq('active', true).ilike('item_name', pattern).limit(50).then(r => ({ source: 'Restaurant', ...r })));
-      requests.push(supabaseClient.from('restaurant_foods').select('id,restaurant,category,item_name,calories,protein_g,carbs_g,fat_g,serving_size,source_url').eq('active', true).ilike('restaurant', pattern).limit(50).then(r => ({ source: 'Restaurant', ...r })));
+
+    if (filter !== 'restaurant') {
+      requests.push((async () => {
+        const curated = await supabaseClient.from('curated_foods').select('usda_food_id,search_name,category').ilike('search_name', pattern).limit(40);
+        if (curated.error) return { source: 'Curated', error: curated.error };
+        const rows = curated.data || [];
+        if (!rows.length) return { source: 'Curated', data: [] };
+        const ids = [...new Set(rows.map(row => row.usda_food_id).filter(id => id !== null))];
+        const foods = ids.length ? await supabaseClient.from('usda_foods').select('id,item_name,calories,protein_g,carbs_g,fat_g').in('id', ids) : { data: [], error: null };
+        if (foods.error) return { source: 'Curated', error: foods.error };
+        const byId = new Map((foods.data || []).map(food => [String(food.id), food]));
+        return { source: 'Curated', data: rows.map(row => {
+          const food = byId.get(String(row.usda_food_id));
+          return food ? { ...food, item_name: row.search_name || food.item_name, category: row.category, usda_food_id: food.id } : null;
+        }).filter(Boolean) };
+      })());
     }
+    if (filter !== 'curated') {
+      const columns = 'id,restaurant,category,item_name,calories,protein_g,carbs_g,fat_g,serving_size,source_url';
+      requests.push(supabaseClient.from('restaurant_foods').select(columns).eq('active', true).ilike('item_name', pattern).limit(50).then(r => ({ source: 'Restaurant', ...r })));
+      requests.push(supabaseClient.from('restaurant_foods').select(columns).eq('active', true).ilike('restaurant', pattern).limit(50).then(r => ({ source: 'Restaurant', ...r })));
+    }
+
     const responses = await Promise.all(requests);
     if (requestId !== requestNumber) return;
-    const failed = responses.filter(r => r.error);
+    const failed = responses.filter(response => response.error);
     const seen = new Set();
     const foods = [];
     for (const response of responses) {
-      if (response.error) { console.error(`${response.source} lookup failed:`, response.error); continue; }
+      if (response.error) { console.error(`${response.source} search failed:`, response.error); continue; }
       for (const food of response.data || []) {
         const key = `${response.source}:${food.id}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        foods.push({ ...food, source: response.source });
+        if (!seen.has(key)) { seen.add(key); foods.push({ ...food, source: response.source }); }
       }
     }
-    foods.sort((a, b) => (a.source === b.source ? (a.item_name || '').localeCompare(b.item_name || '') : a.source === 'Restaurant' ? -1 : 1));
+    foods.sort((a, b) => a.source === b.source ? (a.item_name || '').localeCompare(b.item_name || '') : a.source === 'Restaurant' ? -1 : 1);
     if (failed.length === responses.length) {
       statusDiv.textContent = `Search failed: ${failed.map(r => `${r.source}: ${r.error.message}`).join(' | ')}`;
       return;
     }
-    statusDiv.textContent = `${foods.length} result(s)${failed.length ? ' — one search could not load' : ''}`;
-    if (failed.length) {
-      resultsDiv.innerHTML = `<section class="card source-error"><strong>Some results may be missing.</strong><p>${failed.map(r => `${escapeHtml(r.source)}: ${escapeHtml(r.error.message)}`).join('<br>')}</p><p>Check that restaurant_foods is readable by the Supabase anon role and that its table is included in the exposed public schema.</p></section>`;
-    }
+    statusDiv.textContent = `${foods.length} result(s)${failed.length ? ' — some sources could not be searched' : ''}`;
+    if (failed.length) resultsDiv.innerHTML = `<section class="card source-error"><strong>Some results may be missing.</strong><p>${failed.map(r => `${escapeHtml(r.source)}: ${escapeHtml(r.error.message)}`).join('<br>')}</p><p>Check SELECT access for the app's Supabase role.</p></section>`;
     if (!foods.length) {
       resultsDiv.insertAdjacentHTML('beforeend', '<section class="card"><h2>No matches</h2><p>Try a shorter food name or search for the restaurant itself.</p></section>');
       return;
     }
     resultsDiv.insertAdjacentHTML('beforeend', foods.map(food => `
       <article class="card food-card">
-        <span class="source-badge">${food.source === 'Restaurant' ? '🍽 Restaurant' : '🌿 USDA'}</span>
+        <span class="source-badge">${food.source === 'Restaurant' ? '🍽 Restaurant' : '🌿 Curated'}</span>
         <h2>${escapeHtml(food.item_name)}</h2>
-        ${food.source === 'Restaurant' ? `<p class="restaurant-meta">${escapeHtml(food.restaurant || '')}${food.category ? ` · ${escapeHtml(food.category)}` : ''}${food.serving_size ? ` · ${escapeHtml(food.serving_size)}` : ''}</p>` : '<p class="restaurant-meta">Nutrition per 100 g</p>'}
+        ${food.source === 'Restaurant' ? `<p class="restaurant-meta">${escapeHtml(food.restaurant || '')}${food.category ? ` · ${escapeHtml(food.category)}` : ''}${food.serving_size ? ` · ${escapeHtml(food.serving_size)}` : ''}</p>` : `<p class="restaurant-meta">${escapeHtml(food.category || 'Curated food')} · Nutrition per 100 g</p>`}
         <div class="macros"><div class="macro">Calories<strong>${displayNumber(food.calories)}</strong></div><div class="macro">Protein<strong>${displayNumber(food.protein_g)}g</strong></div><div class="macro">Carbs<strong>${displayNumber(food.carbs_g)}g</strong></div><div class="macro">Fat<strong>${displayNumber(food.fat_g)}g</strong></div></div>
         ${food.source === 'Restaurant' && food.source_url ? `<p><a href="${escapeHtml(food.source_url)}" target="_blank" rel="noopener noreferrer">View nutrition source ↗</a></p>` : ''}
         <button type="button" onclick="addFood('${food.source}',${Number(food.id)},this)">Add to diary</button>
@@ -93,24 +109,26 @@
   }
 
   async function addFood(source, id, button) {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const user = sessionData?.session?.user;
+    if (sessionError || !user) {
+      statusDiv.textContent = 'Sign in or create an account above before adding food to your diary.';
+      document.getElementById('authPanel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const table = source === 'Restaurant' ? 'restaurant_foods' : 'usda_foods';
     const { data: food, error: foodError } = await supabaseClient.from(table).select('id,item_name').eq('id', id).single();
-    if (foodError) { alert(`Could not load this ${source.toLowerCase()} food: ${foodError.message}`); return; }
-    const log = { servings: 1, meal_type: document.getElementById('mealType').value };
+    if (foodError) { statusDiv.textContent = `Could not load food: ${foodError.message}`; return; }
+    const log = { user_id: user.id, servings: 1, meal_type: document.getElementById('mealType').value };
     if (source === 'Restaurant') log.restaurant_food_id = food.id;
     else log.food_id = food.id;
     button.disabled = true;
     const { error } = await supabaseClient.from('food_logs').insert(log);
     button.disabled = false;
-    if (error) {
-      const setupHint = source === 'Restaurant' ? ' Run supabase/migrations/202611040002_restaurant_food_logs.sql in Supabase first.' : '';
-      alert(`Could not add food to diary: ${error.message}.${setupHint}`);
-      return;
-    }
+    if (error) { statusDiv.textContent = `Could not add food to diary: ${error.message}`; return; }
     statusDiv.textContent = `${food.item_name} added to your diary.`;
     button.textContent = 'Added ✓';
   }
-
   const query = new URLSearchParams(location.search).get('query');
   if (query) { searchBox.value = query; searchFoods(); }
 </script>
