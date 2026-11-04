@@ -2,71 +2,64 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Today's Diary — SeShatEats</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/nutrition.js"></script>
-<link rel="stylesheet" href="css/style.css">
+<title>Today's diary — SeShatEats</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/nutrition.js"></script><link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="search.html">Search foods</a>　<a href="recipes.html">Recipes</a></nav>
-<header><p>YOUR FOOD JOURNAL</p><h1>Today's diary</h1></header>
+<nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a><a href="search.html">Search</a><a href="diary.html" aria-current="page">Diary</a><a href="recipes.html">Recipes</a></nav>
+<header><p>YOUR FOOD JOURNAL</p><h1>Today's diary</h1><p>USDA portions and restaurant servings, together in one view.</p></header>
 <section id="totals" aria-label="Daily nutrition totals"><strong>Calories <span id="calories">0</span></strong> · Protein <span id="protein">0</span>g · Carbs <span id="carbs">0</span>g · Fat <span id="fat">0</span>g</section>
 <main id="foods" aria-live="polite">Loading your diary…</main>
 <script>
-const meals = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+const meals = ['Breakfast','Lunch','Dinner','Snack'];
+function escapeHtml(value='') { return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 async function loadDiary() {
   const date = localDateKey();
   const { data: logs, error } = await supabaseClient.from('food_logs')
-    .select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g), restaurant_foods(restaurant, item_name, calories, protein_g, carbs_g, fat_g, serving_size, source_url)')
-    .eq('log_date', date).order('created_at', { ascending: true });
-  const { data: recipeLogs, error: recipeError } = await supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date);
-  if (error) { document.getElementById('foods').textContent = `Could not load diary: ${error.message}. Make sure the restaurant_food_id migration has been applied.`; return; }
-  if (recipeError) console.error('Could not load recipe logs:', recipeError);
-  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-  const grouped = Object.fromEntries(meals.map(meal => [meal, []]));
-  (logs || []).forEach(log => {
-    const isRestaurant = Boolean(log.restaurant_foods);
-    const food = log.restaurant_foods || log.usda_foods;
+    .select('id,servings,meal_type,food_id,restaurant_food_id,usda_foods(item_name,calories,protein_g,carbs_g,fat_g),restaurant_foods(restaurant,item_name,calories,protein_g,carbs_g,fat_g,serving_size,source_url)')
+    .eq('log_date',date).order('created_at',{ascending:true});
+  if (error) {
+    document.getElementById('foods').innerHTML = `<section class="card"><h2>Could not load diary foods</h2><p>${escapeHtml(error.message)}</p><p>If this mentions restaurant_food_id or a relationship, run the restaurant diary migration in Supabase, then reload the API schema cache.</p></section>`;
+    return;
+  }
+  const { data: recipeLogs, error: recipeError } = await supabaseClient.from('recipe_logs').select('id,recipe_id,servings,meal_type').eq('log_date',date);
+  if (recipeError) console.error('Could not load recipe logs:',recipeError);
+  const totals={calories:0,protein:0,carbs:0,fat:0};
+  const grouped=Object.fromEntries(meals.map(meal=>[meal,[]]));
+  (logs||[]).forEach(log=>{
+    const restaurant=log.restaurant_foods;
+    const food=restaurant||log.usda_foods;
     if (!food) return;
-    const servings = Number(log.servings || 1);
-    const macros = scaledNutrition(food, servings);
-    addNutrition(totals, macros);
-    const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
-    const label = isRestaurant ? `${escapeHTML(food.restaurant || 'Restaurant')} · ${escapeHTML(food.serving_size || 'serving')}` : `${servings.toFixed(2)} × 100 g`;
-    const source = isRestaurant && food.source_url ? ` · <a href="${escapeHTML(food.source_url)}" target="_blank" rel="noopener noreferrer">Source</a>` : '';
-    grouped[meal].push(`<article class="card"><strong>${isRestaurant ? '🍽️ ' : ''}${escapeHTML(food.item_name)}</strong><p>${label} · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g${source}</p><button class="serving-btn" onclick="changeServing(${Number(log.id)}, -0.5)">− ½ serving</button> <button class="serving-btn" onclick="changeServing(${Number(log.id)}, 0.5)">+ ½ serving</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Delete</button></article>`);
+    const amount=Number(log.servings||1);
+    const macros=scaledNutrition(food,amount);
+    addNutrition(totals,macros);
+    const meal=meals.includes(log.meal_type)?log.meal_type:'Snack';
+    const portion=restaurant?`${amount.toLocaleString()} × ${escapeHtml(food.serving_size||'serving')}`:`${(amount*100).toLocaleString()} g`;
+    const restaurantLabel=restaurant?`<span class="badge">${escapeHtml(food.restaurant||'Restaurant')}</span>`:'';
+    const source=restaurant&&food.source_url?` · <a href="${escapeHtml(food.source_url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>`:'';
+    grouped[meal].push(`<article class="card"><div class="button-row">${restaurantLabel}<strong>${escapeHtml(food.item_name)}</strong></div><p>${portion} · ${Math.round(macros.calories)} kcal${source}<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="serving-btn" onclick="changeServing(${Number(log.id)},-0.5)">− ½</button> <button class="serving-btn" onclick="changeServing(${Number(log.id)},0.5)">+ ½</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Remove</button></article>`);
   });
-  const recipeIds = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
-  if (recipeIds.length) {
-    const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', recipeIds);
-    if (totalsError) console.error('Could not load recipe totals:', totalsError);
-    const recipeMap = new Map((recipes || []).map(recipe => [String(recipe.id), recipe]));
-    (recipeLogs || []).forEach(log => {
-      const recipe = recipeMap.get(String(log.recipe_id));
-      if (!recipe) return;
-      const servings = Number(log.servings || 1);
-      const macros = scaledNutrition(recipe, servings / Number(recipe.servings || 1));
-      addNutrition(totals, macros);
-      const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
-      grouped[meal].push(`<article class="card"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong><p>${servings} serving(s) · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="delete-btn" onclick="deleteRecipeLog(${Number(log.id)})">Delete</button></article>`);
+  const recipeIds=[...new Set((recipeLogs||[]).map(row=>row.recipe_id).filter(Boolean))];
+  if(recipeIds.length){
+    const {data:recipes,error:recipeTotalsError}=await supabaseClient.from('recipe_totals').select('*').in('id',recipeIds);
+    if(recipeTotalsError) console.error('Could not load recipe totals:',recipeTotalsError);
+    const recipesById=new Map((recipes||[]).map(row=>[String(row.id),row]));
+    (recipeLogs||[]).forEach(log=>{
+      const recipe=recipesById.get(String(log.recipe_id)); if(!recipe)return;
+      const amount=Number(log.servings||1); const macros=scaledNutrition(recipe,amount/Number(recipe.servings||1)); addNutrition(totals,macros);
+      const meal=meals.includes(log.meal_type)?log.meal_type:'Snack';
+      grouped[meal].push(`<article class="card"><span class="badge">Recipe</span><h2>${escapeHtml(recipe.recipe_name)}</h2><p>${amount} serving(s) · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="delete-btn" onclick="deleteRecipeLog(${Number(log.id)})">Remove</button></article>`);
     });
   }
-  document.getElementById('foods').innerHTML = meals.map((meal, index) => `<section class="meal-section"><h2>${['🍳', '🥪', '🍽️', '🍎'][index]} ${meal}</h2>${grouped[meal].join('') || '<p>No entries yet.</p>'}</section>`).join('');
-  document.getElementById('calories').textContent = Math.round(totals.calories);
-  document.getElementById('protein').textContent = totals.protein.toFixed(1);
-  document.getElementById('carbs').textContent = totals.carbs.toFixed(1);
-  document.getElementById('fat').textContent = totals.fat.toFixed(1);
+  document.getElementById('foods').innerHTML=meals.map((meal,i)=>`<section class="meal-section"><h2>${['🍳','🥪','🍽️','🍎'][i]} ${meal}</h2>${grouped[meal].join('')||'<p class="card">Nothing logged yet.</p>'}</section>`).join('');
+  document.getElementById('calories').textContent=Math.round(totals.calories);
+  document.getElementById('protein').textContent=totals.protein.toFixed(1);
+  document.getElementById('carbs').textContent=totals.carbs.toFixed(1);
+  document.getElementById('fat').textContent=totals.fat.toFixed(1);
 }
-async function changeServing(id, change) {
-  const { data, error } = await supabaseClient.from('food_logs').select('servings').eq('id', id).single();
-  if (error) return alert(error.message);
-  const { error: updateError } = await supabaseClient.from('food_logs').update({ servings: Math.max(0.25, Number(data.servings || 1) + change) }).eq('id', id);
-  if (updateError) return alert(updateError.message);
-  loadDiary();
-}
-async function deleteLog(id) { const { error } = await supabaseClient.from('food_logs').delete().eq('id', id); if (error) return alert(error.message); loadDiary(); }
-async function deleteRecipeLog(id) { const { error } = await supabaseClient.from('recipe_logs').delete().eq('id', id); if (error) return alert(error.message); loadDiary(); }
+async function changeServing(id,delta){const {data,error}=await supabaseClient.from('food_logs').select('servings').eq('id',id).single();if(error)return alert(error.message);const {error:updateError}=await supabaseClient.from('food_logs').update({servings:Math.max(.25,Number(data.servings||1)+delta)}).eq('id',id);if(updateError)return alert(updateError.message);loadDiary();}
+async function deleteLog(id){const {error}=await supabaseClient.from('food_logs').delete().eq('id',id);if(error)return alert(error.message);loadDiary();}
+async function deleteRecipeLog(id){const {error}=await supabaseClient.from('recipe_logs').delete().eq('id',id);if(error)return alert(error.message);loadDiary();}
 loadDiary();
 </script>
 </body></html>

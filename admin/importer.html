@@ -1,30 +1,4 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>SeShatEats USDA Importer</title>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script defer src="../js/supabase.js"></script>
-    <script defer src="../js/usda-importer.js"></script>
-</head>
-<body>
-
-<h1>USDA Food Importer</h1>
-
-<input
-    id="foodSearch"
-    type="text"
-    placeholder="Chicken Breast"
-/>
-
-<button id="searchBtn">
-    Import Food
-</button>
-
-<hr>
-
-<div id="results"></div>
-
-</body>
-</html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Admin tools — SeShatEats</title><link rel="stylesheet" href="../css/style.css"></head>
+<body><nav aria-label="Main navigation"><a href="../index.html">🍎 SeShatEats</a><a href="../search.html">Food search</a><a href="../diary.html">Diary</a></nav><header><p>ADMIN TOOLS</p><h1>Data management</h1><p>The public app reads restaurant menu foods from your Supabase table.</p></header><section class="card"><h2>Restaurant foods</h2><p>Manage the imported menu catalogue in Supabase → Table Editor → <code>restaurant_foods</code>. Set <code>active</code> to true for entries that should appear in search. The main Food Search page looks up both menu item names and restaurant names.</p><a href="../search.html">Test restaurant search →</a></section><section class="card"><h2>USDA food curation</h2><p>Curate quick-add USDA ingredients from the existing food catalogue.</p><a href="../admin-foods.html">Open food curator →</a></section><section class="card notice"><strong>Do not put a Supabase service-role key in browser code.</strong> Admin pages use only the public publishable key and should be protected with appropriate Supabase policies.</section></body></html>

@@ -1,86 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Food Curator — SeShatEats</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase.js"></script>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <nav aria-label="Main navigation">
-    <a href="index.html">🏠 Dashboard</a>
-    <a href="diary.html">📋 Diary</a>
-    <a href="recipes.html">🍲 Recipes</a>
-  </nav>
-
-  <header>
-    <p>FOOD CURATOR</p>
-    <h1>Curate common foods</h1>
-  </header>
-
-  <section class="card">
-    <label for="search">Search USDA foods</label>
-    <input id="search" type="text" placeholder="Search for a food…">
-    <button type="button" onclick="searchFoods()">Search</button>
-  </section>
-
-  <div id="results" aria-live="polite">Search for a food to begin.</div>
-
-  <script>
-    const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-
-    async function searchFoods() {
-      const query = document.getElementById('search').value.trim();
-      if (query.length < 2) return alert('Enter at least 2 characters.');
-
-      const { data, error } = await supabaseClient.from('usda_foods').select('*').ilike('item_name', `%${query}%`).limit(50);
-      if (error) return alert(error.message);
-
-      const html = (data || []).map(food => `
-        <article class="card">
-          <h2>${escapeHtml(food.item_name)}</h2>
-          <div style="color: var(--muted); margin-bottom: 12px;">
-            Calories ${Number(food.calories || 0)} · Protein ${Number(food.protein_g || 0)}g · Carbs ${Number(food.carbs_g || 0)}g · Fat ${Number(food.fat_g || 0)}g
-          </div>
-          <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
-            <div>
-              <label>Friendly name</label>
-              <input id="name_${food.id}" value="${escapeHtml(food.item_name)}">
-            </div>
-            <div>
-              <label>Category</label>
-              <select id="cat_${food.id}">
-                <option selected>Protein</option>
-                <option>Dairy</option>
-                <option>Fruit</option>
-                <option>Vegetable</option>
-                <option>Grain</option>
-                <option>Seafood</option>
-                <option>Beverage</option>
-                <option>Snack</option>
-                <option>Supplement</option>
-              </select>
-            </div>
-          </div>
-          <button type="button" onclick="saveFood(${food.id})">➕ Add to curated foods</button>
-          <span id="status_${food.id}" style="display:block; margin-top:8px; color: var(--green); font-weight:700;"></span>
-        </article>
-      `).join('') || '<p>No foods found.</p>';
-
-      document.getElementById('results').innerHTML = html;
-    }
-
-    async function saveFood(id) {
-      const name = document.getElementById(`name_${id}`).value.trim();
-      const category = document.getElementById(`cat_${id}`).value;
-      if (!name) return alert('Enter a friendly name.');
-
-      const { error } = await supabaseClient.from('curated_foods').upsert({ usda_food_id: id, search_name: name, category });
-      if (error) return alert(error.message);
-      document.getElementById(`status_${id}`).textContent = '✅ Saved';
-    }
-  </script>
-</body>
-</html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Food curator — SeShatEats</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><link rel="stylesheet" href="css/style.css"></head>
+<body><nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a><a href="search.html">Search</a><a href="diary.html">Diary</a><a href="recipes.html">Recipes</a></nav><header><p>USDA SHORTCUTS</p><h1>Food curator</h1><p>Save everyday USDA ingredients as quick-add categories. Restaurant foods are managed in Supabase and searched on the main food page.</p></header>
+<section class="card"><label for="search">Search USDA foods</label><input id="search" type="search" placeholder="Search foods…"><button type="button" onclick="searchFoods()">Search foods</button><p id="status" role="status"></p></section><main id="results" aria-live="polite"></main>
+<script>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function searchFoods(){const q=document.getElementById('search').value.trim();if(q.length<2){document.getElementById('status').textContent='Enter at least 2 characters.';return;}const {data,error}=await supabaseClient.from('usda_foods').select('id,item_name,calories,protein_g,carbs_g,fat_g').ilike('item_name',`%${q}%`).limit(40);if(error){document.getElementById('status').textContent=error.message;return;}document.getElementById('status').textContent=`${data.length} result(s)`;document.getElementById('results').innerHTML=(data||[]).map(f=>`<article class="card"><h2>${esc(f.item_name)}</h2><p>${Number(f.calories||0)} kcal · Protein ${Number(f.protein_g||0)}g · Carbs ${Number(f.carbs_g||0)}g · Fat ${Number(f.fat_g||0)}g per 100 g</p><label for="name_${f.id}">Friendly name</label><input id="name_${f.id}" value="${esc(f.item_name)}"><label for="cat_${f.id}">Category</label><select id="cat_${f.id}"><option>Protein</option><option>Dairy</option><option>Fruit</option><option>Vegetable</option><option>Grain</option><option>Seafood</option><option>Beverage</option><option>Snack</option><option>Supplement</option></select><button type="button" onclick="saveFood(${Number(f.id)})">Add to quick-add</button><span id="status_${f.id}" class="helper"></span></article>`).join('')||'<p>No foods found.</p>';}
+async function saveFood(id){const name=document.getElementById(`name_${id}`).value.trim(),category=document.getElementById(`cat_${id}`).value;if(!name)return alert('Enter a friendly name.');const {error}=await supabaseClient.from('curated_foods').upsert({usda_food_id:id,search_name:name,category});if(error)return alert(error.message);document.getElementById(`status_${id}`).textContent=' Saved ✓';}
+document.getElementById('search').addEventListener('keydown',e=>{if(e.key==='Enter')searchFoods();});
+</script></body></html>

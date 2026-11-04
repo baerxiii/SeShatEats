@@ -1,12 +1,2 @@
-async function testConnection() {
-
-    const { data, error } =
-        await supabaseClient
-            .from("restaurants")
-            .select("*");
-
-    console.log(data);
-    console.log(error);
-}
-
-testConnection();
+/* Retired legacy importer: USDA data import is managed through Supabase/admin tools. */
+console.warn('Legacy USDA importer is retired. Use the Supabase Table Editor or Food Curator instead.');

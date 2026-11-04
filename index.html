@@ -1,89 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeShatEats — Daily dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/common-foods.js"></script>
-  <script src="js/nutrition.js"></script>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeShatEats — Your food diary</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/auth.js"></script><script src="js/common-foods.js"></script><script src="js/nutrition.js"></script><link rel="stylesheet" href="css/style.css">
+  <style>.hero { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(250px,.7fr); gap:18px; align-items:stretch; }.hero-copy { padding:clamp(20px,4vw,42px); border-radius:24px; background:linear-gradient(135deg,#176b48,#25865a); color:white; }.hero-copy h1,.hero-copy p { color:white; }.hero-copy .hero-link { display:inline-flex; margin-top:12px; padding:12px 18px; border-radius:12px; background:#fff; color:var(--green-dark)!important; }.quick-list { display:flex; flex-wrap:wrap; gap:10px; }#recentFoods .food-row:last-child { border-bottom:0; }@media(max-width:720px){.hero{grid-template-columns:1fr}}</style>
 </head>
 <body>
-  <nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="search.html">Search foods</a>　<a href="diary.html">Diary</a>　<a href="recipes.html">Recipes</a></nav>
-  <header><p>YOUR DAILY FOOD JOURNAL</p><h1>Eat well, one meal at a time.</h1><p>Track food and recipes together in one daily overview.</p></header>
-  <section class="card" id="authStatus"></section>
-  <section class="card"><h2>Today's nutrition</h2><div class="stats">
-    <div class="stat">Calories<div class="big" id="calories">0</div></div><div class="stat">Protein<div class="big" id="protein">0g</div></div><div class="stat">Carbohydrates<div class="big" id="carbs">0g</div></div><div class="stat">Fat<div class="big" id="fat">0g</div></div>
-  </div></section>
-  <section class="card"><h2>Quick add</h2><p>Search your USDA foods and restaurant menu items from <a href="search.html">Food Search</a>.</p><div class="category-grid">
-    <button class="category-btn" onclick="openCategory('Protein')">🥩 Protein</button><button class="category-btn" onclick="openCategory('Dairy')">🥛 Dairy</button><button class="category-btn" onclick="openCategory('Fruit')">🍎 Fruit</button><button class="category-btn" onclick="openCategory('Vegetable')">🥦 Vegetables</button><button class="category-btn" onclick="openCategory('Grain')">🍚 Grains</button><button class="category-btn" onclick="openCategory('Seafood')">🐟 Seafood</button>
-  </div></section>
-  <section class="card"><h2>Today's entries</h2><div id="recentFoods" aria-live="polite">Loading…</div></section>
-  <dialog id="foodDialog"><form method="dialog"><h2 id="dialogTitle">Add a food</h2><label for="foodSelect">Food</label><select id="foodSelect" required></select><label for="mealSelect">Meal</label><select id="mealSelect"><option>Breakfast</option><option selected>Lunch</option><option>Dinner</option><option>Snack</option></select><label for="gramsInput">Weight (grams)</label><input id="gramsInput" type="number" min="1" value="100" required><p>Quick-add foods use nutrition values per 100 g.</p><button type="button" onclick="addSelectedFood()">Add to diary</button><button type="button" onclick="closeDialog()">Cancel</button></form></dialog>
+<nav aria-label="Main navigation"><a href="index.html" aria-current="page">🍎 SeShatEats</a><a href="search.html">Search foods</a><a href="diary.html">Diary</a><a href="recipes.html">Recipes</a></nav>
+<header class="hero"><section class="hero-copy"><p>YOUR DAILY FOOD JOURNAL</p><h1>Eat well, one meal at a time.</h1><p>Track everyday foods, restaurant meals, and recipes in one simple place.</p><a class="hero-link" href="search.html">Find food →</a></section><section class="card" id="authStatus" aria-live="polite">Checking sign-in status…</section></header>
+<section class="card"><h2>Today at a glance</h2><div class="stats"><div class="stat">Calories<div class="big" id="calories">0</div></div><div class="stat">Protein<div class="big" id="protein">0g</div></div><div class="stat">Carbohydrates<div class="big" id="carbs">0g</div></div><div class="stat">Fat<div class="big" id="fat">0g</div></div></div></section>
+<section class="card"><div class="button-row" style="justify-content:space-between"><div><h2>Quick search</h2><p>Jump to a common food or search 482+ restaurant menu items.</p></div><a href="search.html">Open food search →</a></div><div id="popularFoods" class="quick-list"></div></section>
+<section class="card"><div class="button-row" style="justify-content:space-between"><h2>Today's entries</h2><a href="diary.html">View diary →</a></div><div id="recentFoods" aria-live="polite">Loading your entries…</div></section>
 <script>
-  renderAuthState('authStatus');
-  loadDashboard();
-  async function openCategory(category) {
-    const { data, error } = await supabaseClient.from('curated_foods').select('usda_food_id, search_name').eq('category', category).order('search_name');
-    if (error) return alert(error.message);
-    const select = document.getElementById('foodSelect');
-    select.replaceChildren();
-    (data || []).forEach(food => { const option = document.createElement('option'); option.value = food.usda_food_id; option.textContent = food.search_name; select.append(option); });
-    if (!data?.length) return alert(`No curated ${category.toLowerCase()} foods yet. Search for foods to find restaurant items.`);
-    document.getElementById('dialogTitle').textContent = `Add ${category}`;
-    document.getElementById('foodDialog').showModal();
-  }
-  function closeDialog() { document.getElementById('foodDialog').close(); }
-  async function addSelectedFood() {
-    const foodId = Number(document.getElementById('foodSelect').value);
-    const grams = Number(document.getElementById('gramsInput').value);
-    if (!foodId || grams <= 0) return alert('Choose a food and enter a valid weight.');
-    const { error } = await supabaseClient.from('food_logs').insert({ food_id: foodId, servings: grams / 100, meal_type: document.getElementById('mealSelect').value });
-    if (error) return alert(error.message);
-    closeDialog();
-    loadDashboard();
-  }
-  async function loadDashboard() {
-    const date = localDateKey();
-    const [{ data: logs, error }, { data: recipeLogs, error: recipeError }] = await Promise.all([
-      supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g), restaurant_foods(restaurant, item_name, calories, protein_g, carbs_g, fat_g, serving_size)').eq('log_date', date).order('created_at', { ascending: false }),
-      supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date)
-    ]);
-    if (error) { document.getElementById('recentFoods').textContent = `Could not load foods: ${error.message}. Run the restaurant-food migration first.`; return; }
-    if (recipeError) console.error(recipeError);
-    const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    const rows = [];
-    (logs || []).forEach(log => {
-      const food = log.restaurant_foods || log.usda_foods;
-      if (!food) return;
-      const amount = Number(log.servings || 1);
-      const macros = scaledNutrition(food, amount);
-      addNutrition(totals, macros);
-      const label = log.restaurant_foods ? `Restaurant · ${food.restaurant || ''} · ${food.serving_size || 'serving'}` : 'USDA';
-      rows.push(`<div class="food-row"><strong>${escapeHTML(food.item_name)}</strong> · ${escapeHTML(log.meal_type)} · ${escapeHTML(label)} · ${Math.round(macros.calories)} kcal</div>`);
-    });
-    const ids = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
-    if (ids.length) {
-      const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', ids);
-      if (totalsError) console.error(totalsError);
-      const byId = new Map((recipes || []).map(recipe => [String(recipe.id), recipe]));
-      (recipeLogs || []).forEach(log => {
-        const recipe = byId.get(String(log.recipe_id));
-        if (!recipe) return;
-        const macros = scaledNutrition(recipe, Number(log.servings || 1) / Number(recipe.servings || 1));
-        addNutrition(totals, macros);
-        rows.push(`<div class="food-row"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong> · ${escapeHTML(log.meal_type)} · ${Math.round(macros.calories)} kcal</div>`);
-      });
-    }
-    document.getElementById('recentFoods').innerHTML = rows.join('') || 'Nothing logged today yet. <a href="search.html">Search foods</a>.';
-    document.getElementById('calories').textContent = Math.round(totals.calories);
-    document.getElementById('protein').textContent = `${totals.protein.toFixed(1)}g`;
-    document.getElementById('carbs').textContent = `${totals.carbs.toFixed(1)}g`;
-    document.getElementById('fat').textContent = `${totals.fat.toFixed(1)}g`;
-  }
+renderAuthState('authStatus');renderPopularFoods();loadDashboard();
+function renderPopularFoods(){const c=document.getElementById('popularFoods');c.innerHTML=COMMON_FOODS.slice(0,8).map(f=>`<button class="secondary" type="button" onclick="searchPopularFood('${encodeURIComponent(f.name)}')">${escapeHTML(f.name)}</button>`).join('');}
+function searchPopularFood(name){location.href=`search.html?query=${name}`;}
+async function loadDashboard(){
+ const date=localDateKey();
+ const [{data:logs,error},{data:recipeLogs,error:recipeError}]=await Promise.all([
+  supabaseClient.from('food_logs').select('id,servings,meal_type,usda_foods(item_name,calories,protein_g,carbs_g,fat_g),restaurant_foods(restaurant,item_name,calories,protein_g,carbs_g,fat_g,serving_size)').eq('log_date',date).order('created_at',{ascending:false}),
+  supabaseClient.from('recipe_logs').select('id,recipe_id,servings,meal_type').eq('log_date',date)
+ ]);
+ if(error){document.getElementById('recentFoods').textContent=`Could not load today’s entries: ${error.message}. Restaurant entries require the restaurant diary migration.`;return;}
+ if(recipeError)console.error(recipeError);
+ const total={calories:0,protein:0,carbs:0,fat:0};const rows=[];
+ (logs||[]).forEach(log=>{const f=log.restaurant_foods||log.usda_foods;if(!f)return;const m=scaledNutrition(f,Number(log.servings||1));addNutrition(total,m);const source=log.restaurant_foods?`🍽 ${f.restaurant||'Restaurant'}`:'USDA';rows.push(`<div class="food-row"><strong>${escapeHTML(f.item_name)}</strong> · ${escapeHTML(log.meal_type||'')} · ${escapeHTML(source)} · ${Math.round(m.calories)} kcal</div>`);});
+ const ids=[...new Set((recipeLogs||[]).map(l=>l.recipe_id).filter(Boolean))];
+ if(ids.length){const {data:recipes,error:e}=await supabaseClient.from('recipe_totals').select('*').in('id',ids);if(e)console.error(e);const map=new Map((recipes||[]).map(r=>[String(r.id),r]));(recipeLogs||[]).forEach(log=>{const r=map.get(String(log.recipe_id));if(!r)return;const m=scaledNutrition(r,Number(log.servings||1)/Number(r.servings||1));addNutrition(total,m);rows.push(`<div class="food-row"><strong>🍲 ${escapeHTML(r.recipe_name)}</strong> · ${escapeHTML(log.meal_type||'')} · ${Math.round(m.calories)} kcal</div>`);});}
+ document.getElementById('recentFoods').innerHTML=rows.slice(0,8).join('')||'<p>No food logged yet. <a href="search.html">Search USDA or restaurant foods</a>.</p>';
+ document.getElementById('calories').textContent=Math.round(total.calories);document.getElementById('protein').textContent=`${total.protein.toFixed(1)}g`;document.getElementById('carbs').textContent=`${total.carbs.toFixed(1)}g`;document.getElementById('fat').textContent=`${total.fat.toFixed(1)}g`;
+}
 </script>
 </body>
 </html>
