@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
 <title>My Diary - SeShatEats</title>
 
@@ -46,25 +47,42 @@ a{
 }
 
 button{
-    background:#d32f2f;
-    color:white;
     border:none;
     padding:8px 12px;
     border-radius:6px;
     cursor:pointer;
+    margin-right:4px;
 }
 
-button:hover{
+.delete-btn{
+    background:#d32f2f;
+    color:white;
+}
+
+.delete-btn:hover{
     background:#b71c1c;
 }
 
+.serving-btn{
+    background:#1976d2;
+    color:white;
+}
+
+.serving-btn:hover{
+    background:#0d47a1;
+}
+
 </style>
+
 </head>
+
 <body>
 
 <a href="index.html">🏠 Dashboard</a>
 |
 <a href="search.html">🔍 Search</a>
+|
+<a href="recipes.html">🍲 Recipes</a>
 
 <h1>📋 Today's Diary</h1>
 
@@ -105,7 +123,10 @@ async function loadDiary(){
             .toISOString()
             .split("T")[0];
 
-    const { data, error } =
+    const {
+        data,
+        error
+    } =
         await supabaseClient
             .from("food_logs")
             .select(`
@@ -118,11 +139,28 @@ async function loadDiary(){
                 { ascending:false }
             );
 
+    const {
+        data: recipeLogs,
+        error: recipeError
+    } =
+        await supabaseClient
+            .from("recipe_logs")
+            .select("*")
+            .eq(
+                "log_date",
+                today
+            );
+
     if(error){
 
         console.error(error);
 
         return;
+    }
+
+    if(recipeError){
+
+        console.error(recipeError);
     }
 
     let calories = 0;
@@ -135,6 +173,8 @@ async function loadDiary(){
     let dinner = "";
     let snack = "";
 
+    // FOODS
+
     data.forEach(log => {
 
         const food =
@@ -142,100 +182,206 @@ async function loadDiary(){
 
         if(!food) return;
 
+        const servings =
+            Number(log.servings || 1);
+
         calories +=
-            Number(food.calories || 0);
+            Number(food.calories || 0)
+            * servings;
 
         protein +=
-            Number(food.protein_g || 0);
+            Number(food.protein_g || 0)
+            * servings;
 
         carbs +=
-            Number(food.carbs_g || 0);
+            Number(food.carbs_g || 0)
+            * servings;
 
         fat +=
-            Number(food.fat_g || 0);
+            Number(food.fat_g || 0)
+            * servings;
+
+        const card = `
+        <div class="card">
+
+            <strong>
+                ${food.item_name}
+            </strong>
+
+            <br>
+
+            Meal:
+            ${log.meal_type}
+
+            <br>
+
+            Servings:
+            ${servings.toFixed(2)}
+
+            <br><br>
+
+            <button
+                class="serving-btn"
+                onclick="changeServing(${log.id}, -0.5)"
+            >
+                ➖
+            </button>
+
+            <button
+                class="serving-btn"
+                onclick="changeServing(${log.id}, 0.5)"
+            >
+                ➕
+            </button>
+
+            <br><br>
+
+            Calories:
+            ${(food.calories * servings).toFixed(0)}
+
+            <br>
+
+            Protein:
+            ${(food.protein_g * servings).toFixed(1)}g
+
+            <br>
+
+            Carbs:
+            ${(food.carbs_g * servings).toFixed(1)}g
+
+            <br>
+
+            Fat:
+            ${(food.fat_g * servings).toFixed(1)}g
+
+            <br><br>
+
+            <button
+                class="delete-btn"
+                onclick="deleteLog(${log.id})"
+            >
+                🗑 Delete
+            </button>
+
+        </div>
+        `;
+
+        addCardToMeal(
+            card,
+            log.meal_type
+        );
+    });
+
+    // RECIPES
+
+    for(const log of recipeLogs || []){
+
+        const { data: recipe } =
+            await supabaseClient
+                .from("recipe_totals")
+                .select("*")
+                .eq(
+                    "id",
+                    log.recipe_id
+                )
+                .single();
+
+        if(!recipe) continue;
 
         const servings =
-    Number(log.servings || 1);
+            Number(log.servings || 1);
 
-const card = `
-<div class="card">
+        const recipeCalories =
+            (recipe.calories / recipe.servings)
+            * servings;
 
-    <strong>
-        ${food.item_name}
-    </strong>
+        const recipeProtein =
+            (recipe.protein_g / recipe.servings)
+            * servings;
 
-    <br>
+        const recipeCarbs =
+            (recipe.carbs_g / recipe.servings)
+            * servings;
 
-    Meal:
-    ${log.meal_type}
+        const recipeFat =
+            (recipe.fat_g / recipe.servings)
+            * servings;
 
-    <br>
+        calories += recipeCalories;
+        protein += recipeProtein;
+        carbs += recipeCarbs;
+        fat += recipeFat;
 
-    Servings:
-    ${servings.toFixed(2)}
+        const card = `
+        <div class="card">
 
-    <br><br>
+            <strong>
+                🍲 ${recipe.recipe_name}
+            </strong>
 
-    <button
-        onclick="changeServing(${log.id}, -0.5)"
-    >
-        ➖
-    </button>
+            <br>
 
-    <button
-        onclick="changeServing(${log.id}, 0.5)"
-    >
-        ➕
-    </button>
+            Meal:
+            ${log.meal_type}
 
-    <br><br>
+            <br>
 
-    Calories:
-    ${(food.calories * servings).toFixed(0)}
+            Servings:
+            ${servings}
 
-    <br>
+            <br><br>
 
-    Protein:
-    ${(food.protein_g * servings).toFixed(1)}g
+            Calories:
+            ${recipeCalories.toFixed(0)}
 
-    <br>
+            <br>
 
-    Carbs:
-    ${(food.carbs_g * servings).toFixed(1)}g
+            Protein:
+            ${recipeProtein.toFixed(1)}g
 
-    <br>
+            <br>
 
-    Fat:
-    ${(food.fat_g * servings).toFixed(1)}g
+            Carbs:
+            ${recipeCarbs.toFixed(1)}g
 
-    <br><br>
+            <br>
 
-    <button
-        onclick="deleteLog(${log.id})"
-    >
-        🗑 Delete
-    </button>
+            Fat:
+            ${recipeFat.toFixed(1)}g
 
-</div>
-`;
+            <br><br>
 
-        if(log.meal_type === "Breakfast"){
+            <button
+                class="delete-btn"
+                onclick="deleteRecipeLog(${log.id})"
+            >
+                🗑 Delete
+            </button>
 
+        </div>
+        `;
+
+        addCardToMeal(
+            card,
+            log.meal_type
+        );
+    }
+
+    function addCardToMeal(card, meal){
+
+        if(meal === "Breakfast"){
             breakfast += card;
-
-        } else if(log.meal_type === "Lunch"){
-
+        }
+        else if(meal === "Lunch"){
             lunch += card;
-
-        } else if(log.meal_type === "Dinner"){
-
+        }
+        else if(meal === "Dinner"){
             dinner += card;
-
-        } else {
-
+        }
+        else{
             snack += card;
         }
-    });
+    }
 
     document
         .getElementById("foods")
@@ -260,93 +406,69 @@ const card = `
             <h2>🍎 Snacks</h2>
             ${snack || "No foods logged."}
         </div>
-
     `;
 
-    document
-        .getElementById("calories")
+    document.getElementById("calories")
         .innerText =
         calories.toFixed(0);
 
-    document
-        .getElementById("protein")
+    document.getElementById("protein")
         .innerText =
         protein.toFixed(1);
 
-    document
-        .getElementById("carbs")
+    document.getElementById("carbs")
         .innerText =
         carbs.toFixed(1);
 
-    document
-        .getElementById("fat")
+    document.getElementById("fat")
         .innerText =
         fat.toFixed(1);
 }
 
 async function deleteLog(id){
 
-    const { error } =
-        await supabaseClient
-            .from("food_logs")
-            .delete()
-            .eq("id", id);
+    await supabaseClient
+        .from("food_logs")
+        .delete()
+        .eq("id", id);
 
-    if(error){
+    location.reload();
+}
 
-        console.error(error);
+async function deleteRecipeLog(id){
 
-        alert(error.message);
-
-        return;
-    }
+    await supabaseClient
+        .from("recipe_logs")
+        .delete()
+        .eq("id", id);
 
     location.reload();
 }
 
 async function changeServing(id, change){
 
-    console.log("Updating", id, change);
-
-    const { data, error } =
+    const { data } =
         await supabaseClient
             .from("food_logs")
             .select("*")
             .eq("id", id)
             .single();
 
-    console.log("Current row:", data);
-    console.log("Select error:", error);
-
-    if(error){
-        alert(error.message);
-        return;
-    }
-
     let newServings =
         Number(data.servings || 1)
         + change;
 
     if(newServings < 0.25){
+
         newServings = 0.25;
     }
 
-    console.log("New servings:", newServings);
-
-    const { error:updateError } =
-        await supabaseClient
-            .from("food_logs")
-            .update({
-                servings:newServings
-            })
-            .eq("id", id);
-
-    console.log("Update error:", updateError);
-
-    if(updateError){
-        alert(updateError.message);
-        return;
-    }
+    await supabaseClient
+        .from("food_logs")
+        .update({
+            servings:newServings
+        })
+        .eq("id", id);
 
     location.reload();
 }
