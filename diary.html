@@ -154,43 +154,70 @@ async function loadDiary(){
         fat +=
             Number(food.fat_g || 0);
 
-        const card = `
-        <div class="card">
+        const servings =
+    Number(log.servings || 1);
 
-            <strong>
-                ${food.item_name}
-            </strong>
+const card = `
+<div class="card">
 
-            <br>
+    <strong>
+        ${food.item_name}
+    </strong>
 
-            Calories:
-            ${food.calories}
+    <br>
 
-            <br>
+    Meal:
+    ${log.meal_type}
 
-            Protein:
-            ${food.protein_g ?? 0}g
+    <br>
 
-            <br>
+    Servings:
+    ${servings.toFixed(2)}
 
-            Carbs:
-            ${food.carbs_g ?? 0}g
+    <br><br>
 
-            <br>
+    <button
+        onclick="changeServing(${log.id}, -0.5)"
+    >
+        ➖
+    </button>
 
-            Fat:
-            ${food.fat_g ?? 0}g
+    <button
+        onclick="changeServing(${log.id}, 0.5)"
+    >
+        ➕
+    </button>
 
-            <br><br>
+    <br><br>
 
-            <button
-                onclick="deleteLog(${log.id})"
-            >
-                🗑 Delete
-            </button>
+    Calories:
+    ${(food.calories * servings).toFixed(0)}
 
-        </div>
-        `;
+    <br>
+
+    Protein:
+    ${(food.protein_g * servings).toFixed(1)}g
+
+    <br>
+
+    Carbs:
+    ${(food.carbs_g * servings).toFixed(1)}g
+
+    <br>
+
+    Fat:
+    ${(food.fat_g * servings).toFixed(1)}g
+
+    <br><br>
+
+    <button
+        onclick="deleteLog(${log.id})"
+    >
+        🗑 Delete
+    </button>
+
+</div>
+`;
 
         if(log.meal_type === "Breakfast"){
 
@@ -270,6 +297,49 @@ async function deleteLog(id){
         console.error(error);
 
         alert(error.message);
+
+        return;
+    }
+
+    location.reload();
+}
+
+    async function changeServing(id, change){
+
+    const { data, error } =
+        await supabaseClient
+            .from("food_logs")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    let newServings =
+        Number(data.servings || 1)
+        + change;
+
+    if(newServings < 0.25){
+
+        newServings = 0.25;
+    }
+
+    const { error:updateError } =
+        await supabaseClient
+            .from("food_logs")
+            .update({
+                servings:newServings
+            })
+            .eq("id", id);
+
+    if(updateError){
+
+        console.error(updateError);
 
         return;
     }
