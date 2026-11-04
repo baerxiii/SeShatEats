@@ -14,118 +14,76 @@
 <body>
   <nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="search.html">Search foods</a>　<a href="diary.html">Diary</a>　<a href="recipes.html">Recipes</a></nav>
   <header><p>YOUR DAILY FOOD JOURNAL</p><h1>Eat well, one meal at a time.</h1><p>Track food and recipes together in one daily overview.</p></header>
-
   <section class="card" id="authStatus"></section>
-
-  <section class="card" aria-labelledby="totals-heading"><h2 id="totals-heading">Today's nutrition</h2><div class="stats">
-    <div class="stat">Calories<div class="big" id="calories">0</div></div>
-    <div class="stat">Protein<div class="big" id="protein">0g</div></div>
-    <div class="stat">Carbohydrates<div class="big" id="carbs">0g</div></div>
-    <div class="stat">Fat<div class="big" id="fat">0g</div></div>
+  <section class="card"><h2>Today's nutrition</h2><div class="stats">
+    <div class="stat">Calories<div class="big" id="calories">0</div></div><div class="stat">Protein<div class="big" id="protein">0g</div></div><div class="stat">Carbohydrates<div class="big" id="carbs">0g</div></div><div class="stat">Fat<div class="big" id="fat">0g</div></div>
   </div></section>
-
-  <section class="card">
-    <h2>Quick add</h2>
-    <p>Choose a category to log a 100 g portion, or <a href="search.html">search the food library</a> for a custom weight.</p>
-    <div class="category-grid">
-      <button class="category-btn" onclick="openCategory('Protein')">🥩 Protein</button>
-      <button class="category-btn" onclick="openCategory('Dairy')">🥛 Dairy</button>
-      <button class="category-btn" onclick="openCategory('Fruit')">🍎 Fruit</button>
-      <button class="category-btn" onclick="openCategory('Vegetable')">🥦 Vegetables</button>
-      <button class="category-btn" onclick="openCategory('Grain')">🍚 Grains</button>
-      <button class="category-btn" onclick="openCategory('Seafood')">🐟 Seafood</button>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Popular foods</h2>
-    <div id="popularFoods" class="category-grid"></div>
-  </section>
-
+  <section class="card"><h2>Quick add</h2><p>Search your USDA foods and restaurant menu items from <a href="search.html">Food Search</a>.</p><div class="category-grid">
+    <button class="category-btn" onclick="openCategory('Protein')">🥩 Protein</button><button class="category-btn" onclick="openCategory('Dairy')">🥛 Dairy</button><button class="category-btn" onclick="openCategory('Fruit')">🍎 Fruit</button><button class="category-btn" onclick="openCategory('Vegetable')">🥦 Vegetables</button><button class="category-btn" onclick="openCategory('Grain')">🍚 Grains</button><button class="category-btn" onclick="openCategory('Seafood')">🐟 Seafood</button>
+  </div></section>
   <section class="card"><h2>Today's entries</h2><div id="recentFoods" aria-live="polite">Loading…</div></section>
-
-  <dialog id="foodDialog"><form method="dialog" id="foodForm"><h2 id="dialogTitle">Add a food</h2><label for="foodSelect">Food</label><select id="foodSelect" required></select><label for="mealSelect">Meal</label><select id="mealSelect"><option>Breakfast</option><option selected>Lunch</option><option>Dinner</option><option>Snack</option></select><label for="gramsInput">Amount (grams)</label><input id="gramsInput" type="number" min="1" value="100" required><p>Nutrition is calculated from the food's per-100 g values.</p><button type="button" onclick="addSelectedFood()">Add to diary</button> <button type="button" onclick="closeDialog()">Cancel</button></form></dialog>
-
-  <script>
-    renderAuthState('authStatus');
-    renderPopularFoods();
+  <dialog id="foodDialog"><form method="dialog"><h2 id="dialogTitle">Add a food</h2><label for="foodSelect">Food</label><select id="foodSelect" required></select><label for="mealSelect">Meal</label><select id="mealSelect"><option>Breakfast</option><option selected>Lunch</option><option>Dinner</option><option>Snack</option></select><label for="gramsInput">Weight (grams)</label><input id="gramsInput" type="number" min="1" value="100" required><p>Quick-add foods use nutrition values per 100 g.</p><button type="button" onclick="addSelectedFood()">Add to diary</button><button type="button" onclick="closeDialog()">Cancel</button></form></dialog>
+<script>
+  renderAuthState('authStatus');
+  loadDashboard();
+  async function openCategory(category) {
+    const { data, error } = await supabaseClient.from('curated_foods').select('usda_food_id, search_name').eq('category', category).order('search_name');
+    if (error) return alert(error.message);
+    const select = document.getElementById('foodSelect');
+    select.replaceChildren();
+    (data || []).forEach(food => { const option = document.createElement('option'); option.value = food.usda_food_id; option.textContent = food.search_name; select.append(option); });
+    if (!data?.length) return alert(`No curated ${category.toLowerCase()} foods yet. Search for foods to find restaurant items.`);
+    document.getElementById('dialogTitle').textContent = `Add ${category}`;
+    document.getElementById('foodDialog').showModal();
+  }
+  function closeDialog() { document.getElementById('foodDialog').close(); }
+  async function addSelectedFood() {
+    const foodId = Number(document.getElementById('foodSelect').value);
+    const grams = Number(document.getElementById('gramsInput').value);
+    if (!foodId || grams <= 0) return alert('Choose a food and enter a valid weight.');
+    const { error } = await supabaseClient.from('food_logs').insert({ food_id: foodId, servings: grams / 100, meal_type: document.getElementById('mealSelect').value });
+    if (error) return alert(error.message);
+    closeDialog();
     loadDashboard();
-
-    function renderPopularFoods() {
-      const container = document.getElementById('popularFoods');
-      if (!container) return;
-      container.innerHTML = COMMON_FOODS.map(food => `
-        <button class="category-btn" type="button" onclick="searchPopularFood('${food.name}')">${food.name}</button>
-      `).join('');
-    }
-
-    function searchPopularFood(name) {
-      const query = encodeURIComponent(name);
-      window.location.href = `search.html?query=${query}`;
-    }
-
-    async function openCategory(category) {
-      const { data, error } = await supabaseClient.from('curated_foods').select('usda_food_id, search_name').eq('category', category).order('search_name');
-      if (error) return alert(error.message);
-      const select = document.getElementById('foodSelect');
-      select.replaceChildren();
-      (data || []).forEach(food => { const option = document.createElement('option'); option.value = food.usda_food_id; option.textContent = food.search_name; select.append(option); });
-      if (!data?.length) return alert(`No curated ${category.toLowerCase()} foods yet. Add foods with Food Curator or use Search foods.`);
-      document.getElementById('dialogTitle').textContent = `Add ${category}`;
-      document.getElementById('foodDialog').showModal();
-    }
-
-    function closeDialog() { document.getElementById('foodDialog').close(); }
-
-    async function addSelectedFood() {
-      const foodId = Number(document.getElementById('foodSelect').value);
-      const grams = Number(document.getElementById('gramsInput').value);
-      if (!foodId || grams <= 0) return alert('Choose a food and enter a valid weight.');
-      const { error } = await supabaseClient.from('food_logs').insert({ food_id: foodId, servings: grams / 100, meal_type: document.getElementById('mealSelect').value });
-      if (error) return alert(error.message);
-      closeDialog();
-      await loadDashboard();
-    }
-
-    async function loadDashboard() {
-      const date = localDateKey();
-      const [{ data: foodLogs, error }, { data: recipeLogs, error: recipeError }] = await Promise.all([
-        supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g)').eq('log_date', date).order('created_at', { ascending: false }),
-        supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date)
-      ]);
-      if (error) { document.getElementById('recentFoods').textContent = `Could not load foods: ${error.message}`; return; }
-      if (recipeError) console.error('Could not load recipe logs:', recipeError);
-      const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      const rows = [];
-      (foodLogs || []).forEach(log => {
-        const food = log.usda_foods;
-        if (!food) return;
-        const amount = Number(log.servings || 1);
-        const macros = scaledNutrition(food, amount);
+  }
+  async function loadDashboard() {
+    const date = localDateKey();
+    const [{ data: logs, error }, { data: recipeLogs, error: recipeError }] = await Promise.all([
+      supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g), restaurant_foods(restaurant, item_name, calories, protein_g, carbs_g, fat_g, serving_size)').eq('log_date', date).order('created_at', { ascending: false }),
+      supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date)
+    ]);
+    if (error) { document.getElementById('recentFoods').textContent = `Could not load foods: ${error.message}. Run the restaurant-food migration first.`; return; }
+    if (recipeError) console.error(recipeError);
+    const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const rows = [];
+    (logs || []).forEach(log => {
+      const food = log.restaurant_foods || log.usda_foods;
+      if (!food) return;
+      const amount = Number(log.servings || 1);
+      const macros = scaledNutrition(food, amount);
+      addNutrition(totals, macros);
+      const label = log.restaurant_foods ? `Restaurant · ${food.restaurant || ''} · ${food.serving_size || 'serving'}` : 'USDA';
+      rows.push(`<div class="food-row"><strong>${escapeHTML(food.item_name)}</strong> · ${escapeHTML(log.meal_type)} · ${escapeHTML(label)} · ${Math.round(macros.calories)} kcal</div>`);
+    });
+    const ids = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
+    if (ids.length) {
+      const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', ids);
+      if (totalsError) console.error(totalsError);
+      const byId = new Map((recipes || []).map(recipe => [String(recipe.id), recipe]));
+      (recipeLogs || []).forEach(log => {
+        const recipe = byId.get(String(log.recipe_id));
+        if (!recipe) return;
+        const macros = scaledNutrition(recipe, Number(log.servings || 1) / Number(recipe.servings || 1));
         addNutrition(totals, macros);
-        rows.push(`<div class="food-row"><strong>${escapeHTML(food.item_name)}</strong> · ${escapeHTML(log.meal_type)} · ${Math.round(macros.calories)} kcal</div>`);
+        rows.push(`<div class="food-row"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong> · ${escapeHTML(log.meal_type)} · ${Math.round(macros.calories)} kcal</div>`);
       });
-      const ids = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
-      if (ids.length) {
-        const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', ids);
-        if (totalsError) console.error('Could not load recipe totals:', totalsError);
-        const recipeMap = new Map((recipes || []).map(recipe => [String(recipe.id), recipe]));
-        (recipeLogs || []).forEach(log => {
-          const recipe = recipeMap.get(String(log.recipe_id));
-          if (!recipe) return;
-          const servings = Number(log.servings || 1);
-          const recipeServings = Number(recipe.servings || 1);
-          const macros = scaledNutrition(recipe, servings / recipeServings);
-          addNutrition(totals, macros);
-          rows.push(`<div class="food-row"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong> · ${escapeHTML(log.meal_type)} · ${Math.round(macros.calories)} kcal</div>`);
-        });
-      }
-      document.getElementById('recentFoods').innerHTML = rows.join('') || 'Nothing logged today yet. <a href="search.html">Find a food</a> or build a recipe.';
-      document.getElementById('calories').textContent = Math.round(totals.calories);
-      document.getElementById('protein').textContent = `${totals.protein.toFixed(1)}g`;
-      document.getElementById('carbs').textContent = `${totals.carbs.toFixed(1)}g`;
-      document.getElementById('fat').textContent = `${totals.fat.toFixed(1)}g`;
     }
-  </script>
+    document.getElementById('recentFoods').innerHTML = rows.join('') || 'Nothing logged today yet. <a href="search.html">Search foods</a>.';
+    document.getElementById('calories').textContent = Math.round(totals.calories);
+    document.getElementById('protein').textContent = `${totals.protein.toFixed(1)}g`;
+    document.getElementById('carbs').textContent = `${totals.carbs.toFixed(1)}g`;
+    document.getElementById('fat').textContent = `${totals.fat.toFixed(1)}g`;
+  }
+</script>
 </body>
 </html>

@@ -17,25 +17,26 @@
 const meals = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 async function loadDiary() {
   const date = localDateKey();
-  const [{ data: logs, error }, { data: recipeLogs, error: recipeError }] = await Promise.all([
-    supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g)').eq('log_date', date).order('created_at', { ascending: true }),
-    supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date)
-  ]);
-  if (error) { document.getElementById('foods').textContent = `Could not load diary: ${error.message}`; return; }
+  const { data: logs, error } = await supabaseClient.from('food_logs')
+    .select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g), restaurant_foods(restaurant, item_name, calories, protein_g, carbs_g, fat_g, serving_size, source_url)')
+    .eq('log_date', date).order('created_at', { ascending: true });
+  const { data: recipeLogs, error: recipeError } = await supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date);
+  if (error) { document.getElementById('foods').textContent = `Could not load diary: ${error.message}. Make sure the restaurant_food_id migration has been applied.`; return; }
   if (recipeError) console.error('Could not load recipe logs:', recipeError);
   const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
   const grouped = Object.fromEntries(meals.map(meal => [meal, []]));
-
   (logs || []).forEach(log => {
-    const food = log.usda_foods;
+    const isRestaurant = Boolean(log.restaurant_foods);
+    const food = log.restaurant_foods || log.usda_foods;
     if (!food) return;
     const servings = Number(log.servings || 1);
     const macros = scaledNutrition(food, servings);
     addNutrition(totals, macros);
     const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
-    grouped[meal].push(`<article class="card"><strong>${escapeHTML(food.item_name)}</strong><p>${servings.toFixed(2)} × 100 g · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="serving-btn" onclick="changeServing(${Number(log.id)}, -0.5)">− ½ serving</button> <button class="serving-btn" onclick="changeServing(${Number(log.id)}, 0.5)">+ ½ serving</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Delete</button></article>`);
+    const label = isRestaurant ? `${escapeHTML(food.restaurant || 'Restaurant')} · ${escapeHTML(food.serving_size || 'serving')}` : `${servings.toFixed(2)} × 100 g`;
+    const source = isRestaurant && food.source_url ? ` · <a href="${escapeHTML(food.source_url)}" target="_blank" rel="noopener noreferrer">Source</a>` : '';
+    grouped[meal].push(`<article class="card"><strong>${isRestaurant ? '🍽️ ' : ''}${escapeHTML(food.item_name)}</strong><p>${label} · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g${source}</p><button class="serving-btn" onclick="changeServing(${Number(log.id)}, -0.5)">− ½ serving</button> <button class="serving-btn" onclick="changeServing(${Number(log.id)}, 0.5)">+ ½ serving</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Delete</button></article>`);
   });
-
   const recipeIds = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
   if (recipeIds.length) {
     const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', recipeIds);
@@ -51,7 +52,6 @@ async function loadDiary() {
       grouped[meal].push(`<article class="card"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong><p>${servings} serving(s) · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="delete-btn" onclick="deleteRecipeLog(${Number(log.id)})">Delete</button></article>`);
     });
   }
-
   document.getElementById('foods').innerHTML = meals.map((meal, index) => `<section class="meal-section"><h2>${['🍳', '🥪', '🍽️', '🍎'][index]} ${meal}</h2>${grouped[meal].join('') || '<p>No entries yet.</p>'}</section>`).join('');
   document.getElementById('calories').textContent = Math.round(totals.calories);
   document.getElementById('protein').textContent = totals.protein.toFixed(1);
