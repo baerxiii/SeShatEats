@@ -1,479 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>My Diary - SeShatEats</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
-<style>
-
-body{
-    font-family:Arial,sans-serif;
-    max-width:1000px;
-    margin:auto;
-    padding:20px;
-    background:#f9f9f9;
-}
-
-a{
-    color:#2e7d32;
-    text-decoration:none;
-    font-weight:bold;
-}
-
-#totals{
-    background:#2e7d32;
-    color:white;
-    padding:20px;
-    border-radius:10px;
-    margin-bottom:20px;
-}
-
-.card{
-    background:white;
-    padding:15px;
-    margin-bottom:10px;
-    border-radius:10px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.meal-section{
-    margin-bottom:30px;
-}
-
-button{
-    border:none;
-    padding:8px 12px;
-    border-radius:6px;
-    cursor:pointer;
-    margin-right:4px;
-}
-
-.delete-btn{
-    background:#d32f2f;
-    color:white;
-}
-
-.delete-btn:hover{
-    background:#b71c1c;
-}
-
-.serving-btn{
-    background:#1976d2;
-    color:white;
-}
-
-.serving-btn:hover{
-    background:#0d47a1;
-}
-
-</style>
-
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Today's Diary — SeShatEats</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/nutrition.js"></script><link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-
-<a href="index.html">🏠 Dashboard</a>
-|
-<a href="search.html">🔍 Search</a>
-|
-<a href="recipes.html">🍲 Recipes</a>
-
-<h1>📋 Today's Diary</h1>
-
-<div id="totals">
-
-Calories:
-<span id="calories">0</span>
-
-<br>
-
-Protein:
-<span id="protein">0</span>g
-
-<br>
-
-Carbs:
-<span id="carbs">0</span>g
-
-<br>
-
-Fat:
-<span id="fat">0</span>g
-
-</div>
-
-<div id="foods">
-Loading...
-</div>
-
+<nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="search.html">Search foods</a>　<a href="diary.html">Diary</a>　<a href="recipes.html">Recipes</a></nav>
+<header><p>YOUR FOOD JOURNAL</p><h1>Today's diary</h1><p>Food portions and recipe servings are included in the same totals.</p></header>
+<section id="totals" aria-label="Daily nutrition totals"><strong>Calories <span id="calories">0</span></strong>　·　Protein <span id="protein">0</span>g　·　Carbs <span id="carbs">0</span>g　·　Fat <span id="fat">0</span>g</section>
+<main id="foods" aria-live="polite">Loading your diary…</main>
 <script>
-
-loadDiary();
-
-async function loadDiary(){
-
-    const today =
-        new Date()
-            .toISOString()
-            .split("T")[0];
-
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("food_logs")
-            .select(`
-                *,
-                usda_foods(*)
-            `)
-            .eq("log_date", today)
-            .order(
-                "created_at",
-                { ascending:false }
-            );
-
-    const {
-        data: recipeLogs,
-        error: recipeError
-    } =
-        await supabaseClient
-            .from("recipe_logs")
-            .select("*")
-            .eq(
-                "log_date",
-                today
-            );
-
-    if(error){
-
-        console.error(error);
-
-        return;
-    }
-
-    if(recipeError){
-
-        console.error(recipeError);
-    }
-
-    let calories = 0;
-    let protein = 0;
-    let carbs = 0;
-    let fat = 0;
-
-    let breakfast = "";
-    let lunch = "";
-    let dinner = "";
-    let snack = "";
-
-    // FOODS
-
-    data.forEach(log => {
-
-        const food =
-            log.usda_foods;
-
-        if(!food) return;
-
-        const servings =
-            Number(log.servings || 1);
-
-        calories +=
-            Number(food.calories || 0)
-            * servings;
-
-        protein +=
-            Number(food.protein_g || 0)
-            * servings;
-
-        carbs +=
-            Number(food.carbs_g || 0)
-            * servings;
-
-        fat +=
-            Number(food.fat_g || 0)
-            * servings;
-
-        const card = `
-        <div class="card">
-
-            <strong>
-                ${food.item_name}
-            </strong>
-
-            <br>
-
-            Meal:
-            ${log.meal_type}
-
-            <br>
-
-            Servings:
-            ${servings.toFixed(2)}
-
-            <br><br>
-
-            <button
-                class="serving-btn"
-                onclick="changeServing(${log.id}, -0.5)"
-            >
-                ➖
-            </button>
-
-            <button
-                class="serving-btn"
-                onclick="changeServing(${log.id}, 0.5)"
-            >
-                ➕
-            </button>
-
-            <br><br>
-
-            Calories:
-            ${(food.calories * servings).toFixed(0)}
-
-            <br>
-
-            Protein:
-            ${(food.protein_g * servings).toFixed(1)}g
-
-            <br>
-
-            Carbs:
-            ${(food.carbs_g * servings).toFixed(1)}g
-
-            <br>
-
-            Fat:
-            ${(food.fat_g * servings).toFixed(1)}g
-
-            <br><br>
-
-            <button
-                class="delete-btn"
-                onclick="deleteLog(${log.id})"
-            >
-                🗑 Delete
-            </button>
-
-        </div>
-        `;
-
-        addCardToMeal(
-            card,
-            log.meal_type
-        );
+const meals = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+async function loadDiary() {
+  const date = localDateKey();
+  const [{ data: logs, error }, { data: recipeLogs, error: recipeError }] = await Promise.all([
+    supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g)').eq('log_date', date).order('created_at', { ascending: true }),
+    supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date)
+  ]);
+  if (error) { document.getElementById('foods').textContent = `Could not load diary: ${error.message}`; return; }
+  if (recipeError) console.error('Could not load recipe logs:', recipeError);
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const grouped = Object.fromEntries(meals.map(meal => [meal, []]));
+  (logs || []).forEach(log => {
+    const food = log.usda_foods;
+    if (!food) return;
+    const servings = Number(log.servings || 1);
+    const macros = scaledNutrition(food, servings);
+    addNutrition(totals, macros);
+    const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
+    grouped[meal].push(`<article class="card"><strong>${escapeHTML(food.item_name)}</strong><p>${servings * 100} g · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="serving-btn" aria-label="Reduce ${escapeHTML(food.item_name)} by 50 grams" onclick="changeServing(${Number(log.id)}, -0.5)">− 50 g</button> <button class="serving-btn" aria-label="Add 50 grams of ${escapeHTML(food.item_name)}" onclick="changeServing(${Number(log.id)}, 0.5)">+ 50 g</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Delete</button></article>`);
+  });
+  const recipeIds = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
+  if (recipeIds.length) {
+    const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', recipeIds);
+    if (totalsError) console.error('Could not load recipe totals:', totalsError);
+    const recipeMap = new Map((recipes || []).map(recipe => [String(recipe.id), recipe]));
+    (recipeLogs || []).forEach(log => {
+      const recipe = recipeMap.get(String(log.recipe_id));
+      if (!recipe) return;
+      const servings = Number(log.servings || 1);
+      const macros = scaledNutrition(recipe, servings / Number(recipe.servings || 1));
+      addNutrition(totals, macros);
+      const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
+      grouped[meal].push(`<article class="card"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong><p>${servings} serving(s) · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="delete-btn" onclick="deleteRecipeLog(${Number(log.id)})">Delete</button></article>`);
     });
-
-    // RECIPES
-
-    for(const log of recipeLogs || []){
-
-        const { data: recipe } =
-            await supabaseClient
-                .from("recipe_totals")
-                .select("*")
-                .eq(
-                    "id",
-                    log.recipe_id
-                )
-                .single();
-
-        if(!recipe) continue;
-
-        const servings =
-            Number(log.servings || 1);
-
-        const recipeCalories =
-            (recipe.calories / recipe.servings)
-            * servings;
-
-        const recipeProtein =
-            (recipe.protein_g / recipe.servings)
-            * servings;
-
-        const recipeCarbs =
-            (recipe.carbs_g / recipe.servings)
-            * servings;
-
-        const recipeFat =
-            (recipe.fat_g / recipe.servings)
-            * servings;
-
-        calories += recipeCalories;
-        protein += recipeProtein;
-        carbs += recipeCarbs;
-        fat += recipeFat;
-
-        const card = `
-        <div class="card">
-
-            <strong>
-                🍲 ${recipe.recipe_name}
-            </strong>
-
-            <br>
-
-            Meal:
-            ${log.meal_type}
-
-            <br>
-
-            Servings:
-            ${servings}
-
-            <br><br>
-
-            Calories:
-            ${recipeCalories.toFixed(0)}
-
-            <br>
-
-            Protein:
-            ${recipeProtein.toFixed(1)}g
-
-            <br>
-
-            Carbs:
-            ${recipeCarbs.toFixed(1)}g
-
-            <br>
-
-            Fat:
-            ${recipeFat.toFixed(1)}g
-
-            <br><br>
-
-            <button
-                class="delete-btn"
-                onclick="deleteRecipeLog(${log.id})"
-            >
-                🗑 Delete
-            </button>
-
-        </div>
-        `;
-
-        addCardToMeal(
-            card,
-            log.meal_type
-        );
-    }
-
-    function addCardToMeal(card, meal){
-
-        if(meal === "Breakfast"){
-            breakfast += card;
-        }
-        else if(meal === "Lunch"){
-            lunch += card;
-        }
-        else if(meal === "Dinner"){
-            dinner += card;
-        }
-        else{
-            snack += card;
-        }
-    }
-
-    document
-        .getElementById("foods")
-        .innerHTML = `
-
-        <div class="meal-section">
-            <h2>🍳 Breakfast</h2>
-            ${breakfast || "No foods logged."}
-        </div>
-
-        <div class="meal-section">
-            <h2>🥪 Lunch</h2>
-            ${lunch || "No foods logged."}
-        </div>
-
-        <div class="meal-section">
-            <h2>🍽 Dinner</h2>
-            ${dinner || "No foods logged."}
-        </div>
-
-        <div class="meal-section">
-            <h2>🍎 Snacks</h2>
-            ${snack || "No foods logged."}
-        </div>
-    `;
-
-    document.getElementById("calories")
-        .innerText =
-        calories.toFixed(0);
-
-    document.getElementById("protein")
-        .innerText =
-        protein.toFixed(1);
-
-    document.getElementById("carbs")
-        .innerText =
-        carbs.toFixed(1);
-
-    document.getElementById("fat")
-        .innerText =
-        fat.toFixed(1);
+  }
+  document.getElementById('foods').innerHTML = meals.map((meal, index) => `<section class="meal-section"><h2>${['🍳', '🥪', '🍽️', '🍎'][index]} ${meal}</h2>${grouped[meal].join('') || '<p>No entries yet.</p>'}</section>`).join('');
+  document.getElementById('calories').textContent = Math.round(totals.calories);
+  document.getElementById('protein').textContent = totals.protein.toFixed(1);
+  document.getElementById('carbs').textContent = totals.carbs.toFixed(1);
+  document.getElementById('fat').textContent = totals.fat.toFixed(1);
 }
-
-async function deleteLog(id){
-
-    await supabaseClient
-        .from("food_logs")
-        .delete()
-        .eq("id", id);
-
-    location.reload();
+async function changeServing(id, change) {
+  const { data, error } = await supabaseClient.from('food_logs').select('servings').eq('id', id).single();
+  if (error) return alert(error.message);
+  const { error: updateError } = await supabaseClient.from('food_logs').update({ servings: Math.max(0.25, Number(data.servings || 1) + change) }).eq('id', id);
+  if (updateError) return alert(updateError.message);
+  loadDiary();
 }
-
-async function deleteRecipeLog(id){
-
-    await supabaseClient
-        .from("recipe_logs")
-        .delete()
-        .eq("id", id);
-
-    location.reload();
-}
-
-async function changeServing(id, change){
-
-    const { data } =
-        await supabaseClient
-            .from("food_logs")
-            .select("*")
-            .eq("id", id)
-            .single();
-
-    let newServings =
-        Number(data.servings || 1)
-        + change;
-
-    if(newServings < 0.25){
-
-        newServings = 0.25;
-    }
-
-    await supabaseClient
-        .from("food_logs")
-        .update({
-            servings:newServings
-        })
-        .eq("id", id);
-
-    location.reload();
-}
-
+async function deleteLog(id) { const { error } = await supabaseClient.from('food_logs').delete().eq('id', id); if (error) return alert(error.message); loadDiary(); }
+async function deleteRecipeLog(id) { const { error } = await supabaseClient.from('recipe_logs').delete().eq('id', id); if (error) return alert(error.message); loadDiary(); }
+loadDiary();
 </script>
-
-</body>
-</html>
+</body></html>
