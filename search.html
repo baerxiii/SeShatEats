@@ -3,189 +3,118 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Search and import foods — SeShatEats</title>
+  <title>Search foods — SeShatEats</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="js/supabase.js"></script>
-  <script src="js/nutrition.js"></script>
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    .toolbar, .food-form { display: grid; gap: 14px; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .full { grid-column: 1 / -1; }
-    .field { display: grid; gap: 6px; }
-    .field label { font-weight: 650; }
-    .helper, .status { color: var(--muted); }
-    .notice { border-left: 4px solid var(--orange); padding: 10px 14px; background: #fff8ee; border-radius: 8px; }
-    .macros { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 12px; }
-    .macro { text-align: center; }
-    .macro strong { display: block; }
-    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-    #pdfText { max-height: 220px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--paper); border-radius: 10px; padding: 12px; }
-    @media (max-width: 620px) { .grid, .macros { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  </style>
 </head>
 <body>
-  <nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="diary.html">Diary</a>　<a href="recipes.html">Recipes</a></nav>
-  <header><p>SEARCH, ADD AND TRACK</p><h1>Food library</h1></header>
+  <nav aria-label="Main navigation">
+    <a href="index.html">🍎 SeShatEats</a>　<a href="diary.html">Diary</a>　<a href="recipes.html">Recipes</a>
+  </nav>
+
+  <header>
+    <p>SEARCH YOUR FOOD LIBRARY</p>
+    <h1>Find foods</h1>
+  </header>
 
   <section class="card">
-    <h2>Import nutrition from a PDF</h2>
-    <p class="notice"><strong>Private, local-first processing:</strong> choose a PDF and this page extracts selectable text in your browser. The PDF itself is not uploaded. Scanned/image-only PDFs need OCR or manual entry. Check the source’s terms before reusing its nutrition data.</p>
-    <div class="food-form">
-      <div class="field"><label for="pdfFile">Nutrition PDF</label><input id="pdfFile" type="file" accept="application/pdf,.pdf"><small class="helper">PDF only, maximum 15 MB. Text extraction runs in this browser.</small></div>
-      <div class="row"><button id="extractPdf" type="button">Extract text</button><button id="parsePdf" type="button" class="secondary">Suggest nutrition values</button></div>
-      <div id="pdfStatus" class="status" aria-live="polite"></div>
-      <details><summary>Extracted PDF text (review/copy)</summary><pre id="pdfText">No PDF loaded.</pre></details>
-    </div>
+    <label for="search">Food name</label>
+    <input id="search" type="search" placeholder="Search foods…" autocomplete="off">
+    <label for="mealType">Add to meal</label>
+    <select id="mealType">
+      <option value="Breakfast">🍳 Breakfast</option>
+      <option value="Lunch" selected>🥪 Lunch</option>
+      <option value="Dinner">🍽 Dinner</option>
+      <option value="Snack">🍎 Snack</option>
+    </select>
+    <p id="status" aria-live="polite">Type at least 2 characters to search.</p>
   </section>
 
-  <section class="card">
-    <h2>Review and add food</h2>
-    <p class="helper">Parser suggestions are not verified. Check each value against the PDF. You can also enter everything manually.</p>
-    <form id="foodForm" class="food-form">
-      <div class="grid">
-        <div class="field full"><label for="foodName">Food or menu item</label><input id="foodName" required maxlength="160" placeholder="e.g. Grilled chicken wrap"></div>
-        <div class="field"><label for="brand">Brand / restaurant</label><input id="brand" maxlength="120" placeholder="e.g. Example Cafe"></div>
-        <div class="field"><label for="sourceUrl">Source URL (optional)</label><input id="sourceUrl" type="url" placeholder="https://..." maxlength="1000"></div>
-        <div class="field"><label for="basis">Nutrition values are per</label><select id="basis"><option value="per_serving">One serving (restaurant / label)</option><option value="per_100g">100 g</option></select></div>
-        <div class="field"><label for="servingGrams">Serving weight in grams (optional)</label><input id="servingGrams" type="number" min="0.1" step="any" placeholder="e.g. 240"><small class="helper">Needed to use this item as a weighted recipe ingredient.</small></div>
-        <div class="field"><label for="calories">Calories</label><input id="calories" type="number" min="0" step="any" required></div>
-        <div class="field"><label for="protein">Protein (g)</label><input id="protein" type="number" min="0" step="any" required></div>
-        <div class="field"><label for="carbs">Carbohydrates (g)</label><input id="carbs" type="number" min="0" step="any" required></div>
-        <div class="field"><label for="fat">Fat (g)</label><input id="fat" type="number" min="0" step="any" required></div>
-        <div class="field full"><label for="mealType">Add to meal after saving</label><select id="mealType"><option>Breakfast</option><option selected>Lunch</option><option>Dinner</option><option>Snack</option></select></div>
-      </div>
-      <div class="row"><button type="submit">Save food and add to diary</button><button type="reset" class="secondary">Clear form</button></div>
-      <div id="saveStatus" class="status" aria-live="polite"></div>
-    </form>
-  </section>
-
-  <section class="card toolbar">
-    <h2>Search saved foods</h2>
-    <label for="search">Food name</label><input id="search" type="text" placeholder="Chicken breast, oats, yogurt..." autocomplete="off">
-    <div id="status" class="status" aria-live="polite">Type at least 2 characters to search.</div>
-  </section>
-  <div id="results" aria-live="polite"></div>
-  <footer class="helper">Restaurant nutrition values are saved as per serving when selected. Food data from PDFs remains your responsibility to verify and use with permission.</footer>
+  <main id="results" aria-live="polite"></main>
 
   <script>
-    if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const pdfInput = document.getElementById('pdfFile');
-    const pdfStatus = document.getElementById('pdfStatus');
-    const pdfText = document.getElementById('pdfText');
     const searchBox = document.getElementById('search');
-    let extractedText = '';
+    const resultsDiv = document.getElementById('results');
+    const statusDiv = document.getElementById('status');
 
-    function setStatus(id, message) { document.getElementById(id).textContent = message; }
-    function findValue(text, regex) { const match = text.match(regex); return match ? Number(match[1].replace(',', '.')) : null; }
-
-    document.getElementById('extractPdf').addEventListener('click', async () => {
-      const file = pdfInput.files?.[0];
-      if (!file) return setStatus('pdfStatus', 'Choose a PDF first.');
-      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) return setStatus('pdfStatus', 'Please select a PDF file.');
-      if (file.size > 15 * 1024 * 1024) return setStatus('pdfStatus', 'PDF is larger than 15 MB.');
-      if (!window.pdfjsLib) return setStatus('pdfStatus', 'PDF text reader failed to load. Enter values manually.');
-      setStatus('pdfStatus', 'Reading PDF locally…');
-      try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
-        const pdf = await pdfjsLib.getDocument({ data: bytes, isEvalSupported: false }).promise;
-        if (pdf.numPages > 60) throw new Error('PDF is over the 60-page limit.');
-        const pageTexts = [];
-        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-          const page = await pdf.getPage(pageNumber);
-          const content = await page.getTextContent();
-          pageTexts.push(content.items.map(item => item.str).join(' '));
-        }
-        extractedText = pageTexts.join('\n');
-        pdfText.textContent = extractedText || 'No selectable text found. This may be a scanned PDF; enter nutrition values manually.';
-        setStatus('pdfStatus', extractedText ? `Extracted text from ${pdf.numPages} page(s). Review it, then use “Suggest nutrition values”.` : 'No selectable text found. Manual entry is available.');
-      } catch (error) {
-        console.error(error);
-        setStatus('pdfStatus', `Could not read the PDF: ${error.message || 'unknown error'}`);
-      }
-    });
-
-    document.getElementById('parsePdf').addEventListener('click', () => {
-      if (!extractedText) return setStatus('pdfStatus', 'Extract text from a selectable PDF first, or enter values manually.');
-      const text = extractedText.replace(/\s+/g, ' ');
-      const values = {
-        calories: findValue(text, /(?:calories|énergie|energy)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)/i),
-        protein: findValue(text, /(?:protein|protéines?)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*g/i),
-        carbs: findValue(text, /(?:total\s*)?(?:carbohydrates?|glucides)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*g/i),
-        fat: findValue(text, /(?:total\s*)?(?:fat|lipides|gras)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*g/i),
-        grams: findValue(text, /(?:serving\s*size|portion|serving)\s*[:\-]?\s*(\d+(?:[.,]\d+)?)\s*(?:g|grammes?)\b/i)
-      };
-      for (const key of ['calories', 'protein', 'carbs', 'fat']) if (values[key] !== null) document.getElementById(key).value = values[key];
-      if (values.grams !== null) document.getElementById('servingGrams').value = values.grams;
-      const count = ['calories', 'protein', 'carbs', 'fat'].filter(key => values[key] !== null).length;
-      setStatus('pdfStatus', count ? `Suggested ${count} macro value(s). Verify every field and the serving basis before saving.` : 'No macro fields recognized. Enter values manually; PDF layouts vary.');
-    });
-
-    document.getElementById('foodForm').addEventListener('submit', async event => {
-      event.preventDefault();
-      const basis = document.getElementById('basis').value;
-      const gramsRaw = document.getElementById('servingGrams').value.trim();
-      const grams = gramsRaw ? Number(gramsRaw) : null;
-      const sourceUrl = document.getElementById('sourceUrl').value.trim();
-      if (gramsRaw && (!Number.isFinite(grams) || grams <= 0)) return setStatus('saveStatus', 'Serving weight must be greater than zero.');
-      if (sourceUrl) {
-        try { const url = new URL(sourceUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); }
-        catch { return setStatus('saveStatus', 'Source must be a valid http or https URL.'); }
-      }
-      const foodRecord = {
-        item_name: document.getElementById('foodName').value.trim(),
-        calories: Number(document.getElementById('calories').value),
-        protein_g: Number(document.getElementById('protein').value),
-        carbs_g: Number(document.getElementById('carbs').value),
-        fat_g: Number(document.getElementById('fat').value),
-        nutrition_basis: basis,
-        serving_size_g: grams,
-        source_url: sourceUrl || null,
-        source_checked_at: localDateKey()
-      };
-      const brand = document.getElementById('brand').value.trim();
-      if (brand) foodRecord.brand = brand;
-      setStatus('saveStatus', 'Saving…');
-      const { data: food, error } = await supabaseClient.from('usda_foods').insert(foodRecord).select('id').single();
-      if (error) {
-        console.error(error);
-        return setStatus('saveStatus', `Save failed. Run the SQL migration in supabase/migrations first. Details: ${error.message}`);
-      }
-      const logAmount = basis === 'per_serving' ? 1 : (grams ? grams / 100 : 1);
-      const { error: logError } = await supabaseClient.from('food_logs').insert({ food_id: food.id, servings: logAmount, meal_type: document.getElementById('mealType').value });
-      if (logError) return setStatus('saveStatus', `Food saved, but diary logging failed: ${logError.message}`);
-      setStatus('saveStatus', 'Saved and added to your diary.');
-      document.getElementById('foodForm').reset();
-    });
-
-    searchBox.addEventListener('input', searchFoods);
-    async function searchFoods() {
-      const query = searchBox.value.trim();
-      const results = document.getElementById('results');
-      if (query.length < 2) { results.innerHTML = ''; setStatus('status', 'Type at least 2 characters to search.'); return; }
-      setStatus('status', 'Searching…');
-      const { data, error } = await supabaseClient.from('usda_foods').select('id, item_name, brand, calories, protein_g, carbs_g, fat_g, nutrition_basis, serving_size_g').ilike('item_name', `${query}%`).limit(25);
-      if (error) { setStatus('status', `Search failed: ${error.message}`); return; }
-      setStatus('status', `${(data || []).length} food(s) found`);
-      results.innerHTML = (data || []).map(food => `
-        <article class="card">
-          <h2>${escapeHTML(food.item_name)}</h2>
-          <p>${escapeHTML(food.brand || '')} · Values ${food.nutrition_basis === 'per_serving' ? 'per serving' : 'per 100 g'}${food.serving_size_g ? ` (${Number(food.serving_size_g)} g)` : ''}</p>
-          <div class="macros"><div class="macro">Calories<strong>${Number(food.calories || 0)}</strong></div><div class="macro">Protein<strong>${Number(food.protein_g || 0)}g</strong></div><div class="macro">Carbs<strong>${Number(food.carbs_g || 0)}g</strong></div><div class="macro">Fat<strong>${Number(food.fat_g || 0)}g</strong></div></div>
-          <p><button type="button" onclick="addFood(${Number(food.id)}, '${food.nutrition_basis || 'per_100g'}')">Add to diary</button></p>
-        </article>`).join('');
+    function escapeHtml(value = '') {
+      return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[character]));
     }
 
-    async function addFood(id, basis) {
-      const amount = basis === 'per_serving' ? 1 : 1;
-      const { error } = await supabaseClient.from('food_logs').insert({ food_id: id, servings: amount, meal_type: document.getElementById('mealType')?.value || 'Lunch' });
-      if (error) return alert(error.message);
-      window.location.href = 'diary.html';
+    let searchTimer;
+    searchBox.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(searchFoods, 250);
+    });
+
+    async function searchFoods() {
+      const query = searchBox.value.trim();
+      if (query.length < 2) {
+        resultsDiv.replaceChildren();
+        statusDiv.textContent = 'Type at least 2 characters to search.';
+        return;
+      }
+
+      statusDiv.textContent = 'Searching…';
+      const { data, error } = await supabaseClient
+        .from('usda_foods')
+        .select('id, item_name, calories, protein_g, carbs_g, fat_g')
+        .ilike('item_name', `${query}%`)
+        .limit(25);
+
+      if (error) {
+        console.error(error);
+        statusDiv.textContent = `Search failed: ${error.message}`;
+        return;
+      }
+
+      statusDiv.textContent = `${(data || []).length} food(s) found`;
+      resultsDiv.innerHTML = (data || []).map(food => `
+        <article class="card">
+          <h2>${escapeHtml(food.item_name)}</h2>
+          <div class="macros">
+            <div class="macro">Calories<br><strong>${Number(food.calories || 0)}</strong></div>
+            <div class="macro">Protein<br><strong>${Number(food.protein_g || 0)}g</strong></div>
+            <div class="macro">Carbs<br><strong>${Number(food.carbs_g || 0)}g</strong></div>
+            <div class="macro">Fat<br><strong>${Number(food.fat_g || 0)}g</strong></div>
+          </div>
+          <p><button type="button" onclick="addFood(${Number(food.id)})">➕ Add to diary</button></p>
+        </article>
+      `).join('');
+    }
+
+    async function addFood(foodId) {
+      const { data: food, error: foodError } = await supabaseClient
+        .from('usda_foods')
+        .select('id, item_name')
+        .eq('id', foodId)
+        .single();
+      if (foodError) {
+        alert(`Could not find food: ${foodError.message}`);
+        return;
+      }
+
+      const { error } = await supabaseClient.from('food_logs').insert({
+        food_id: food.id,
+        servings: 1,
+        meal_type: document.getElementById('mealType').value
+      });
+      if (error) {
+        alert(`Failed to add food: ${error.message}`);
+        return;
+      }
+
+      statusDiv.textContent = `${food.item_name} added to your diary.`;
     }
 
     const queryFromUrl = new URLSearchParams(location.search).get('query');
-    if (queryFromUrl) { searchBox.value = queryFromUrl; searchFoods(); }
+    if (queryFromUrl) {
+      searchBox.value = queryFromUrl;
+      searchFoods();
+    }
   </script>
 </body>
 </html>

@@ -3,36 +3,39 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Today's Diary — SeShatEats</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/nutrition.js"></script><link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/nutrition.js"></script>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="search.html">Search foods</a>　<a href="recipes.html">Recipes</a></nav>
-<header><p>YOUR FOOD JOURNAL</p><h1>Today's diary</h1><p>Food portions and recipe servings are included in the same totals.</p></header>
-<section id="totals" aria-label="Daily nutrition totals"><strong>Calories <span id="calories">0</span></strong>　·　Protein <span id="protein">0</span>g　·　Carbs <span id="carbs">0</span>g　·　Fat <span id="fat">0</span>g</section>
+<header><p>YOUR FOOD JOURNAL</p><h1>Today's diary</h1></header>
+<section id="totals" aria-label="Daily nutrition totals"><strong>Calories <span id="calories">0</span></strong> · Protein <span id="protein">0</span>g · Carbs <span id="carbs">0</span>g · Fat <span id="fat">0</span>g</section>
 <main id="foods" aria-live="polite">Loading your diary…</main>
 <script>
 const meals = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 async function loadDiary() {
   const date = localDateKey();
   const [{ data: logs, error }, { data: recipeLogs, error: recipeError }] = await Promise.all([
-    supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g, nutrition_basis, serving_size_g, source_url)').eq('log_date', date).order('created_at', { ascending: true }),
+    supabaseClient.from('food_logs').select('id, servings, meal_type, usda_foods(item_name, calories, protein_g, carbs_g, fat_g)').eq('log_date', date).order('created_at', { ascending: true }),
     supabaseClient.from('recipe_logs').select('id, recipe_id, servings, meal_type').eq('log_date', date)
   ]);
   if (error) { document.getElementById('foods').textContent = `Could not load diary: ${error.message}`; return; }
   if (recipeError) console.error('Could not load recipe logs:', recipeError);
   const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
   const grouped = Object.fromEntries(meals.map(meal => [meal, []]));
+
   (logs || []).forEach(log => {
     const food = log.usda_foods;
     if (!food) return;
-    const portions = Number(log.servings || 1);
-    const macros = scaledNutrition(food, portions);
+    const servings = Number(log.servings || 1);
+    const macros = scaledNutrition(food, servings);
     addNutrition(totals, macros);
     const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
-    const portionLabel = food.nutrition_basis === 'per_serving' ? `${portions.toFixed(2)} serving(s)` : `${(portions * 100).toFixed(0)} g`;
-    const source = food.source_url ? ` · <a href="${escapeHTML(food.source_url)}" target="_blank" rel="noopener noreferrer">Source</a>` : '';
-    grouped[meal].push(`<article class="card"><strong>${escapeHTML(food.item_name)}</strong><p>${portionLabel} · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g${source}</p><button class="serving-btn" aria-label="Reduce portion" onclick="changeServing(${Number(log.id)}, -0.5)">− ½</button> <button class="serving-btn" aria-label="Increase portion" onclick="changeServing(${Number(log.id)}, 0.5)">+ ½</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Delete</button></article>`);
+    grouped[meal].push(`<article class="card"><strong>${escapeHTML(food.item_name)}</strong><p>${servings.toFixed(2)} × 100 g · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="serving-btn" onclick="changeServing(${Number(log.id)}, -0.5)">− ½ serving</button> <button class="serving-btn" onclick="changeServing(${Number(log.id)}, 0.5)">+ ½ serving</button> <button class="delete-btn" onclick="deleteLog(${Number(log.id)})">Delete</button></article>`);
   });
+
   const recipeIds = [...new Set((recipeLogs || []).map(log => log.recipe_id).filter(Boolean))];
   if (recipeIds.length) {
     const { data: recipes, error: totalsError } = await supabaseClient.from('recipe_totals').select('*').in('id', recipeIds);
@@ -41,13 +44,14 @@ async function loadDiary() {
     (recipeLogs || []).forEach(log => {
       const recipe = recipeMap.get(String(log.recipe_id));
       if (!recipe) return;
-      const portions = Number(log.servings || 1);
-      const macros = scaledNutrition(recipe, portions / Number(recipe.servings || 1));
+      const servings = Number(log.servings || 1);
+      const macros = scaledNutrition(recipe, servings / Number(recipe.servings || 1));
       addNutrition(totals, macros);
       const meal = meals.includes(log.meal_type) ? log.meal_type : 'Snack';
-      grouped[meal].push(`<article class="card"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong><p>${portions} serving(s) · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="delete-btn" onclick="deleteRecipeLog(${Number(log.id)})">Delete</button></article>`);
+      grouped[meal].push(`<article class="card"><strong>🍲 ${escapeHTML(recipe.recipe_name)}</strong><p>${servings} serving(s) · ${Math.round(macros.calories)} kcal<br>Protein ${macros.protein.toFixed(1)}g · Carbs ${macros.carbs.toFixed(1)}g · Fat ${macros.fat.toFixed(1)}g</p><button class="delete-btn" onclick="deleteRecipeLog(${Number(log.id)})">Delete</button></article>`);
     });
   }
+
   document.getElementById('foods').innerHTML = meals.map((meal, index) => `<section class="meal-section"><h2>${['🍳', '🥪', '🍽️', '🍎'][index]} ${meal}</h2>${grouped[meal].join('') || '<p>No entries yet.</p>'}</section>`).join('');
   document.getElementById('calories').textContent = Math.round(totals.calories);
   document.getElementById('protein').textContent = totals.protein.toFixed(1);
