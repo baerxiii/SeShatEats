@@ -8,24 +8,24 @@ A static food diary and recipe tracker built with HTML, CSS, JavaScript, and Sup
 python -m http.server 8000
 ```
 
-Configure `js/supabase.js` with the Supabase project URL and publishable/anon key only. Never expose a service-role key in browser code.
+Open `http://localhost:8000`. Configure `js/supabase.js` with the project URL and a publishable/anon key only. Never expose a service-role key in browser code.
 
-## Food lookup and diary
+## Test sign-in and food logging
 
-Food Search reads the Canadian `canada_foods` table and the active `restaurant_foods` menu table. Canadian nutrition values are scaled by each row's `weight_g` when present; rows without a positive weight are treated as per 100 g. Restaurant values are per menu serving.
+Open `account.html` (or use the sign-in form on the dashboard, search, diary, or recipe pages). Create an account with an email and password, confirm the email if Supabase email confirmation is enabled, then sign in. Supabase Auth persists the session in the browser. Add an item from Food Search and check Today's Diary.
 
-Apply `supabase/migrations/202611040004_canada_foods.sql` in Supabase SQL Editor before adding Canadian foods to diaries or recipes. It adds Canadian food references while preserving old `food_id` rows. The restaurant diary migration `202611040002_restaurant_food_logs.sql` is also required for restaurant logging.
+If adding a food fails, apply these SQL migrations in Supabase SQL Editor in order, if they have not already been run:
 
-The app no longer queries the old USDA catalog. Legacy log and recipe ingredient rows remain in the database; pages show a legacy placeholder and exclude those rows from recalculated nutrition until they are replaced with Canadian foods. No existing records are deleted.
+1. `supabase/migrations/202611040002_restaurant_food_logs.sql` for restaurant diary references.
+2. `supabase/migrations/202611040003_auth_diary_and_catalog_read.sql` for owner-scoped food-log access.
+3. `supabase/migrations/202611040004_canada_foods.sql` for Canadian catalog references and read access.
 
-## Pages
+Ensure `food_logs.user_id` exists and your existing RLS policies permit authenticated owners to insert/read/update/delete their own rows. For recipes, Supabase must also grant authenticated users the needed access to `recipes`, `recipe_ingredients`, and `recipe_logs`; those tables' exact ownership columns/policies vary by project.
 
-- `index.html`: dashboard and today's entries.
-- `search.html`: Canadian and restaurant food search plus diary logging.
-- `diary.html`: meal-grouped entries, totals, portion adjustments, and removal.
-- `recipes.html`: recipe builder using Canadian foods and serving weights.
-- `admin-foods.html`: browse Canadian foods.
+## Food lookup
 
-## Authentication and security
+Food Search reads `canada_foods` and active `restaurant_foods`. Canadian nutrition is scaled by `weight_g` when provided; restaurant values are treated as per menu serving.
 
-Supabase email/password sign-up and sign-in use the existing Auth project. Food logs are intended to be owner-scoped by `user_id`; review existing RLS policies because permissive policies combine with OR. Never expose a service-role key in frontend code.
+## Security
+
+Food catalogs are intended to be readable by the app. Diary data should be owner-scoped with Row Level Security. Review existing permissive policies because PostgreSQL permissive policies combine with OR. Never expose a service-role key in browser code.

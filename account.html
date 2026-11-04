@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account — SeShatEats</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav aria-label="Main navigation">
+    <a href="index.html">🍎 SeShatEats</a>
+    <a href="search.html">Search foods</a>
+    <a href="diary.html">Diary</a>
+    <a href="recipes.html">Recipes</a>
+    <a href="account.html" aria-current="page">Account</a>
+  </nav>
+  <header>
+    <p>YOUR PERSONAL FOOD JOURNAL</p>
+    <h1>Your account</h1>
+    <p>Sign in or create an account to save and view your own diary.</p>
+  </header>
+  <main class="card" id="authPanel" aria-live="polite">Checking account…</main>
+  <script>renderAuthPanel('authPanel');</script>
+</body>
+</html>
