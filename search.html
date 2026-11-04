@@ -1,285 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>SeShatEats Search</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
-<style>
-
-body{
-    font-family: Arial, sans-serif;
-    max-width:1000px;
-    margin:auto;
-    padding:20px;
-    background:#f9f9f9;
-}
-
-h1{
-    color:#2e7d32;
-}
-
-a{
-    font-weight:bold;
-    color:#2e7d32;
-    text-decoration:none;
-}
-
-#search{
-    width:100%;
-    padding:12px;
-    font-size:18px;
-    border-radius:8px;
-    border:1px solid #ccc;
-    margin-bottom:15px;
-}
-
-.food-card{
-    background:white;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:10px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.macros{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:10px;
-    margin-top:10px;
-}
-
-.macro{
-    background:#f1f1f1;
-    padding:10px;
-    border-radius:8px;
-    text-align:center;
-}
-
-button{
-    background:#2e7d32;
-    color:white;
-    border:none;
-    padding:10px 15px;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-button:hover{
-    background:#1b5e20;
-}
-
-#status{
-    margin-top:10px;
-    color:#666;
-}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search foods — SeShatEats</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/nutrition.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .search-toolbar { display: grid; gap: 14px; }
+    .search-status { color: var(--muted); font-weight: 600; }
+    .food-card .meta { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 12px; }
+    .food-card .meta .macro { text-align: center; font-size: .9rem; }
+    .food-card .meta strong { display: block; font-size: 1.1rem; margin-top: 6px; }
+    .recipe-link { margin-top: 6px; display: inline-block; }
+    @media (max-width: 620px) { .food-card .meta { grid-template-columns: repeat(2, minmax(110px, 1fr)); } }
+  </style>
 </head>
 <body>
+  <nav aria-label="Main navigation">
+    <a href="index.html">🍎 SeShatEats</a>
+    <a href="diary.html">Diary</a>
+    <a href="recipes.html">Recipes</a>
+  </nav>
 
-<a href="index.html">🏠 Dashboard</a>
-|
-<a href="diary.html">📋 Diary</a>
+  <header>
+    <p>SEARCH AND LOG FOOD</p>
+    <h1>Find foods</h1>
+  </header>
 
-<h1>SeShatEats</h1>
+  <section class="card search-toolbar">
+    <label for="search">Food search</label>
+    <input id="search" type="text" placeholder="Chicken breast, oats, yogurt..." autocomplete="off">
 
-<input
-    id="search"
-    type="text"
-    placeholder="Search foods..."
->
+    <label for="mealType">Log to meal</label>
+    <select id="mealType">
+      <option value="Breakfast">🍳 Breakfast</option>
+      <option value="Lunch" selected>🥪 Lunch</option>
+      <option value="Dinner">🍽 Dinner</option>
+      <option value="Snack">🍎 Snack</option>
+    </select>
 
-<br><br>
+    <div id="status" class="search-status" aria-live="polite">Type at least 2 characters to search.</div>
+  </section>
 
-<select id="mealType">
+  <div id="results" aria-live="polite"></div>
 
-    <option value="Breakfast">
-        🍳 Breakfast
-    </option>
+  <script>
+    const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
-    <option value="Lunch" selected>
-        🥪 Lunch
-    </option>
+    const searchBox = document.getElementById('search');
+    searchBox.addEventListener('input', searchFoods);
 
-    <option value="Dinner">
-        🍽 Dinner
-    </option>
+    async function searchFoods() {
+      const query = searchBox.value.trim();
+      const resultsDiv = document.getElementById('results');
+      const statusDiv = document.getElementById('status');
 
-    <option value="Snack">
-        🍎 Snack
-    </option>
-
-</select>
-
-<div id="status">
-    Type at least 2 characters to search.
-</div>
-
-<br>
-
-<div id="results"></div>
-
-<script>
-
-const searchBox =
-    document.getElementById("search");
-
-searchBox.addEventListener(
-    "input",
-    searchFoods
-);
-
-async function searchFoods(){
-
-    const query =
-        searchBox.value.trim();
-
-    const resultsDiv =
-        document.getElementById("results");
-
-    const statusDiv =
-        document.getElementById("status");
-
-    if(query.length < 2){
-
-        resultsDiv.innerHTML = "";
-
-        statusDiv.innerHTML =
-            "Type at least 2 characters to search.";
-
+      if (query.length < 2) {
+        resultsDiv.innerHTML = '';
+        statusDiv.textContent = 'Type at least 2 characters to search.';
         return;
-    }
+      }
 
-    statusDiv.innerHTML =
-        "Searching...";
+      statusDiv.textContent = 'Searching…';
+      const { data, error } = await supabaseClient
+        .from('usda_foods')
+        .select('*')
+        .ilike('item_name', `${query}%`)
+        .limit(25);
 
-    const { data, error } =
-        await supabaseClient
-            .from("usda_foods")
-            .select("*")
-            .ilike(
-                "item_name",
-                `${query}%`
-            )
-            .limit(25);
-
-    if(error){
-
+      if (error) {
         console.error(error);
-
-        statusDiv.innerHTML =
-            "Search failed.";
-
+        statusDiv.textContent = 'Search failed.';
         return;
+      }
+
+      statusDiv.textContent = `${(data || []).length} food(s) found`;
+
+      if (!data || !data.length) {
+        resultsDiv.innerHTML = '<div class="card"><p>No foods matched your search. Try a broader word or add a new food from the curator.</p></div>';
+        return;
+      }
+
+      resultsDiv.innerHTML = data.map(food => `
+        <article class="card food-card">
+          <h2>${escapeHtml(food.item_name)}</h2>
+          <div class="meta">
+            <div class="macro">Calories<strong>${Number(food.calories || 0)}</strong></div>
+            <div class="macro">Protein<strong>${Number(food.protein_g || 0)}g</strong></div>
+            <div class="macro">Carbs<strong>${Number(food.carbs_g || 0)}g</strong></div>
+            <div class="macro">Fat<strong>${Number(food.fat_g || 0)}g</strong></div>
+          </div>
+          <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+            <button type="button" onclick="addFood(${food.id})">➕ Add to diary</button>
+            <a class="recipe-link" href="recipes.html">Build a recipe</a>
+          </div>
+        </article>
+      `).join('');
     }
 
-    statusDiv.innerHTML =
-        `${data.length} food(s) found`;
+    async function addFood(foodId) {
+      const { data: food, error: foodError } = await supabaseClient
+        .from('usda_foods')
+        .select('*')
+        .eq('id', foodId)
+        .single();
 
-    let html = "";
-
-    data.forEach(food => {
-
-        html += `
-        <div class="food-card">
-
-            <strong>
-                ${food.item_name}
-            </strong>
-
-            <br><br>
-
-            <div class="macros">
-
-                <div class="macro">
-                    Calories<br>
-                    <strong>${food.calories ?? 0}</strong>
-                </div>
-
-                <div class="macro">
-                    Protein<br>
-                    <strong>${food.protein_g ?? 0}g</strong>
-                </div>
-
-                <div class="macro">
-                    Carbs<br>
-                    <strong>${food.carbs_g ?? 0}g</strong>
-                </div>
-
-                <div class="macro">
-                    Fat<br>
-                    <strong>${food.fat_g ?? 0}g</strong>
-                </div>
-
-            </div>
-
-            <br>
-
-            <button
-                onclick="addFood(${food.id})"
-            >
-                ➕ Add To Diary
-            </button>
-
-        </div>
-        `;
-    });
-
-    resultsDiv.innerHTML = html;
-}
-
-async function addFood(foodId){
-
-    const { data: food, error: foodError } =
-        await supabaseClient
-            .from("usda_foods")
-            .select("*")
-            .eq("id", foodId)
-            .single();
-
-    if(foodError){
-
+      if (foodError) {
         console.error(foodError);
-
-        alert("Could not find food.");
-
+        alert('Could not find that food.');
         return;
-    }
+      }
 
-    const mealType =
-        document.getElementById(
-            "mealType"
-        ).value;
+      const mealType = document.getElementById('mealType').value;
+      const { error } = await supabaseClient.from('food_logs').insert({
+        food_id: food.id,
+        servings: 1,
+        meal_type: mealType
+      });
 
-    const { error } =
-        await supabaseClient
-            .from("food_logs")
-            .insert({
-                food_id: food.id,
-                servings: 1,
-                meal_type: mealType
-            });
-
-    if(error){
-
+      if (error) {
         console.error(error);
-
-        alert("Failed to add food.");
-
+        alert('Failed to add food.');
         return;
+      }
+
+      alert(`${food.item_name} added to ${mealType}.`);
+      window.location.href = 'diary.html';
     }
-
-    alert(
-        `${food.item_name} added to ${mealType}`
-    );
-}
-
-</script>
-
+  </script>
 </body>
 </html>

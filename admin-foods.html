@@ -1,369 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>SeShatEats Food Curator</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
-<style>
-
-body{
-    font-family:Arial,sans-serif;
-    max-width:1400px;
-    margin:auto;
-    padding:20px;
-    background:#f5f5f5;
-}
-
-h1{
-    color:#2e7d32;
-}
-
-.nav{
-    margin-bottom:20px;
-}
-
-.nav a{
-    color:#2e7d32;
-    font-weight:bold;
-    text-decoration:none;
-}
-
-.card{
-    background:white;
-    border:1px solid #ddd;
-    padding:15px;
-    margin:10px 0;
-    border-radius:10px;
-    box-shadow:0 2px 4px rgba(0,0,0,.08);
-}
-
-.search-box{
-    display:flex;
-    gap:10px;
-}
-
-.search-box input{
-    flex:1;
-}
-
-input,
-select{
-
-    width:100%;
-    padding:10px;
-    margin-top:5px;
-    margin-bottom:8px;
-
-}
-
-button{
-
-    padding:10px 16px;
-    cursor:pointer;
-
-}
-
-.save-btn{
-    background:#2e7d32;
-    color:white;
-    border:none;
-    border-radius:6px;
-}
-
-.save-btn:hover{
-    background:#1b5e20;
-}
-
-.meta{
-
-    margin-top:10px;
-    font-size:14px;
-
-}
-
-.saved{
-
-    color:green;
-    font-weight:bold;
-
-}
-
-.row{
-
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Curator — SeShatEats</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
+  <nav aria-label="Main navigation">
+    <a href="index.html">🏠 Dashboard</a>
+    <a href="diary.html">📋 Diary</a>
+    <a href="recipes.html">🍲 Recipes</a>
+  </nav>
 
-<div class="nav">
+  <header>
+    <p>FOOD CURATOR</p>
+    <h1>Curate common foods</h1>
+  </header>
 
-<a href="index.html">
-🏠 Dashboard
-</a>
+  <section class="card">
+    <label for="search">Search USDA foods</label>
+    <input id="search" type="text" placeholder="Search for a food…">
+    <button type="button" onclick="searchFoods()">Search</button>
+  </section>
 
-|
+  <div id="results" aria-live="polite">Search for a food to begin.</div>
 
-<a href="diary.html">
-📋 Diary
-</a>
+  <script>
+    const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
-|
+    async function searchFoods() {
+      const query = document.getElementById('search').value.trim();
+      if (query.length < 2) return alert('Enter at least 2 characters.');
 
-<a href="recipes.html">
-🍲 Recipes
-</a>
+      const { data, error } = await supabaseClient.from('usda_foods').select('*').ilike('item_name', `%${query}%`).limit(50);
+      if (error) return alert(error.message);
 
-</div>
-
-<h1>🛠 Food Curator</h1>
-
-<div class="search-box">
-
-<input
-    id="search"
-    placeholder="Search USDA foods..."
->
-
-<button onclick="searchFoods()">
-Search
-</button>
-
-</div>
-
-<hr>
-
-<div id="results">
-Search for a food to begin.
-</div>
-
-<script>
-
-async function searchFoods(){
-
-    const query =
-        document
-            .getElementById(
-                "search"
-            )
-            .value
-            .trim();
-
-    if(query.length < 2){
-
-        alert(
-            "Enter at least 2 characters."
-        );
-
-        return;
-    }
-
-    const { data, error } =
-        await supabaseClient
-            .from("usda_foods")
-            .select("*")
-            .ilike(
-                "item_name",
-                `%${query}%`
-            )
-            .limit(50);
-
-    if(error){
-
-        console.error(error);
-
-        return;
-    }
-
-    let html = "";
-
-    data.forEach(food => {
-
-        html += `
-        <div class="card">
-
-            <strong>
-                ${food.item_name}
-            </strong>
-
-            <div class="meta">
-
-                Calories:
-                ${food.calories ?? 0}
-
-                |
-
-                Protein:
-                ${food.protein_g ?? 0}g
-
-                |
-
-                Carbs:
-                ${food.carbs_g ?? 0}g
-
-                |
-
-                Fat:
-                ${food.fat_g ?? 0}g
-
+      const html = (data || []).map(food => `
+        <article class="card">
+          <h2>${escapeHtml(food.item_name)}</h2>
+          <div style="color: var(--muted); margin-bottom: 12px;">
+            Calories ${Number(food.calories || 0)} · Protein ${Number(food.protein_g || 0)}g · Carbs ${Number(food.carbs_g || 0)}g · Fat ${Number(food.fat_g || 0)}g
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:12px;">
+            <div>
+              <label>Friendly name</label>
+              <input id="name_${food.id}" value="${escapeHtml(food.item_name)}">
             </div>
-
-            <div class="row">
-
-                <div>
-
-                    Friendly Name
-
-                    <input
-                        id="name_${food.id}"
-                        value="${food.item_name}"
-                    >
-
-                </div>
-
-                <div>
-
-                    Category
-
-                    <select
-                        id="cat_${food.id}"
-                    >
-
-                        <option selected>
-                            Protein
-                        </option>
-
-                        <option>
-                            Dairy
-                        </option>
-
-                        <option>
-                            Fruit
-                        </option>
-
-                        <option>
-                            Vegetable
-                        </option>
-
-                        <option>
-                            Grain
-                        </option>
-
-                        <option>
-                            Seafood
-                        </option>
-
-                        <option>
-                            Beverage
-                        </option>
-
-                        <option>
-                            Snack
-                        </option>
-
-                        <option>
-                            Supplement
-                        </option>
-
-                    </select>
-
-                </div>
-
+            <div>
+              <label>Category</label>
+              <select id="cat_${food.id}">
+                <option selected>Protein</option>
+                <option>Dairy</option>
+                <option>Fruit</option>
+                <option>Vegetable</option>
+                <option>Grain</option>
+                <option>Seafood</option>
+                <option>Beverage</option>
+                <option>Snack</option>
+                <option>Supplement</option>
+              </select>
             </div>
+          </div>
+          <button type="button" onclick="saveFood(${food.id})">➕ Add to curated foods</button>
+          <span id="status_${food.id}" style="display:block; margin-top:8px; color: var(--green); font-weight:700;"></span>
+        </article>
+      `).join('') || '<p>No foods found.</p>';
 
-            <button
-                class="save-btn"
-                onclick="saveFood(${food.id})"
-            >
-                ➕ Add To Curated Foods
-            </button>
-
-            <span
-                id="status_${food.id}"
-                class="saved"
-            ></span>
-
-        </div>
-        `;
-    });
-
-    document
-        .getElementById(
-            "results"
-        )
-        .innerHTML = html;
-}
-
-async function saveFood(id){
-
-    const name =
-        document
-            .getElementById(
-                `name_${id}`
-            )
-            .value
-            .trim();
-
-    const category =
-        document
-            .getElementById(
-                `cat_${id}`
-            )
-            .value;
-
-    if(!name){
-
-        alert(
-            "Enter a friendly name."
-        );
-
-        return;
+      document.getElementById('results').innerHTML = html;
     }
 
-    const { error } =
-        await supabaseClient
-            .from("curated_foods")
-            .upsert({
+    async function saveFood(id) {
+      const name = document.getElementById(`name_${id}`).value.trim();
+      const category = document.getElementById(`cat_${id}`).value;
+      if (!name) return alert('Enter a friendly name.');
 
-                usda_food_id:id,
-
-                search_name:name,
-
-                category:category
-
-            });
-
-    if(error){
-
-        alert(
-            error.message
-        );
-
-        return;
+      const { error } = await supabaseClient.from('curated_foods').upsert({ usda_food_id: id, search_name: name, category });
+      if (error) return alert(error.message);
+      document.getElementById(`status_${id}`).textContent = '✅ Saved';
     }
-
-    document
-        .getElementById(
-            `status_${id}`
-        )
-        .innerText =
-        "✅ Saved";
-}
-
-</script>
-
+  </script>
 </body>
 </html>
