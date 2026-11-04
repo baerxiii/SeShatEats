@@ -1,4 +1,4 @@
-/* Shared nutrition helpers. Legacy records without nutrition_basis are per 100 g. */
+/* Shared nutrition helpers. Canadian food rows are recorded per their stated serving weight. */
 function localDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -16,15 +16,12 @@ function scaledNutrition(food, amount = 1) {
   };
 }
 
-/* Convert a recipe ingredient weight to nutrition. Serving-based foods need a recorded serving weight. */
+/* Calculate nutrition for grams. Canada Foods values use weight_g as their serving weight. */
 function nutritionForGrams(food, grams) {
   const weight = Number(grams) || 0;
-  if (food?.nutrition_basis === "per_serving") {
-    const servingGrams = Number(food.serving_size_g);
-    if (!servingGrams || servingGrams <= 0) return null;
-    return scaledNutrition(food, weight / servingGrams);
-  }
-  return scaledNutrition(food, weight / 100);
+  const servingWeight = Number(food?.weight_g);
+  const factor = servingWeight > 0 ? weight / servingWeight : weight / 100;
+  return scaledNutrition(food, factor);
 }
 
 function addNutrition(total, item) {
