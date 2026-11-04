@@ -6,11 +6,14 @@
   <title>Search foods — SeShatEats</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/common-foods.js"></script>
   <script src="js/nutrition.js"></script>
   <link rel="stylesheet" href="css/style.css">
   <style>
     .search-toolbar { display: grid; gap: 14px; }
     .search-status { color: var(--muted); font-weight: 600; }
+    .popular-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
     .food-card .meta { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 12px; }
     .food-card .meta .macro { text-align: center; font-size: .9rem; }
     .food-card .meta strong { display: block; font-size: 1.1rem; margin-top: 6px; }
@@ -19,45 +22,51 @@
   </style>
 </head>
 <body>
-  <nav aria-label="Main navigation">
-    <a href="index.html">🍎 SeShatEats</a>
-    <a href="diary.html">Diary</a>
-    <a href="recipes.html">Recipes</a>
-  </nav>
+  <nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a>　<a href="diary.html">Diary</a>　<a href="recipes.html">Recipes</a></nav>
+  <header><p>SEARCH AND LOG FOOD</p><h1>Find foods</h1></header>
 
-  <header>
-    <p>SEARCH AND LOG FOOD</p>
-    <h1>Find foods</h1>
-  </header>
+  <section class="card" id="authStatus"></section>
 
   <section class="card search-toolbar">
     <label for="search">Food search</label>
     <input id="search" type="text" placeholder="Chicken breast, oats, yogurt..." autocomplete="off">
-
     <label for="mealType">Log to meal</label>
-    <select id="mealType">
-      <option value="Breakfast">🍳 Breakfast</option>
-      <option value="Lunch" selected>🥪 Lunch</option>
-      <option value="Dinner">🍽 Dinner</option>
-      <option value="Snack">🍎 Snack</option>
-    </select>
-
+    <select id="mealType"><option value="Breakfast">🍳 Breakfast</option><option value="Lunch" selected>🥪 Lunch</option><option value="Dinner">🍽 Dinner</option><option value="Snack">🍎 Snack</option></select>
     <div id="status" class="search-status" aria-live="polite">Type at least 2 characters to search.</div>
+  </section>
+
+  <section class="card">
+    <h2>Popular foods</h2>
+    <div class="popular-grid" id="popularFoods"></div>
   </section>
 
   <div id="results" aria-live="polite"></div>
 
   <script>
-    const escapeHtml = (value = '') => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    renderAuthState('authStatus');
+    renderPopularFoods();
+
+    function renderPopularFoods() {
+      const container = document.getElementById('popularFoods');
+      container.innerHTML = COMMON_FOODS.map(food => `
+        <button class="category-btn" type="button" onclick="prefillSearch('${food.name}')">${food.name}</button>
+      `).join('');
+    }
+
+    function prefillSearch(name) {
+      document.getElementById('search').value = name;
+      searchFoods();
+    }
 
     const searchBox = document.getElementById('search');
     searchBox.addEventListener('input', searchFoods);
+    const queryFromUrl = new URLSearchParams(window.location.search).get('query');
+    if (queryFromUrl) { searchBox.value = decodeURIComponent(queryFromUrl); searchFoods(); }
 
     async function searchFoods() {
       const query = searchBox.value.trim();
       const resultsDiv = document.getElementById('results');
       const statusDiv = document.getElementById('status');
-
       if (query.length < 2) {
         resultsDiv.innerHTML = '';
         statusDiv.textContent = 'Type at least 2 characters to search.';
@@ -65,11 +74,7 @@
       }
 
       statusDiv.textContent = 'Searching…';
-      const { data, error } = await supabaseClient
-        .from('usda_foods')
-        .select('*')
-        .ilike('item_name', `${query}%`)
-        .limit(25);
+      const { data, error } = await supabaseClient.from('usda_foods').select('*').ilike('item_name', `${query}%`).limit(25);
 
       if (error) {
         console.error(error);
@@ -78,7 +83,6 @@
       }
 
       statusDiv.textContent = `${(data || []).length} food(s) found`;
-
       if (!data || !data.length) {
         resultsDiv.innerHTML = '<div class="card"><p>No foods matched your search. Try a broader word or add a new food from the curator.</p></div>';
         return;
@@ -102,34 +106,16 @@
     }
 
     async function addFood(foodId) {
-      const { data: food, error: foodError } = await supabaseClient
-        .from('usda_foods')
-        .select('*')
-        .eq('id', foodId)
-        .single();
-
-      if (foodError) {
-        console.error(foodError);
-        alert('Could not find that food.');
-        return;
-      }
-
+      const { data: food, error: foodError } = await supabaseClient.from('usda_foods').select('*').eq('id', foodId).single();
+      if (foodError) { console.error(foodError); alert('Could not find that food.'); return; }
       const mealType = document.getElementById('mealType').value;
-      const { error } = await supabaseClient.from('food_logs').insert({
-        food_id: food.id,
-        servings: 1,
-        meal_type: mealType
-      });
-
-      if (error) {
-        console.error(error);
-        alert('Failed to add food.');
-        return;
-      }
-
+      const { error } = await supabaseClient.from('food_logs').insert({ food_id: food.id, servings: 1, meal_type: mealType });
+      if (error) { console.error(error); alert('Failed to add food.'); return; }
       alert(`${food.item_name} added to ${mealType}.`);
       window.location.href = 'diary.html';
     }
+
+    function escapeHtml(value = '') { return String(value).replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
   </script>
 </body>
 </html>
