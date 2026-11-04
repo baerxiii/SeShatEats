@@ -33,7 +33,7 @@ input,
 select{
     width:100%;
     padding:10px;
-    margin:5px 0;
+    margin:6px 0;
 }
 
 button{
@@ -55,7 +55,18 @@ button{
     background:#d32f2f;
     color:white;
     border:none;
-    border-radius:6px;
+}
+
+.remove-btn:hover{
+    background:#b71c1c;
+}
+
+.search-result{
+    border:1px solid #ddd;
+    padding:15px;
+    margin:10px 0;
+    border-radius:10px;
+    background:white;
 }
 
 </style>
@@ -67,19 +78,27 @@ button{
 <a href="index.html">🏠 Dashboard</a>
 |
 <a href="diary.html">📋 Diary</a>
+|
+<a href="search.html">🔍 Search</a>
 
 <h1>🍲 Recipe Builder</h1>
 
 <div class="card">
 
-<label>Recipe Name</label>
+<h2>Create Recipe</h2>
+
+<label>
+Recipe Name
+</label>
 
 <input
     id="recipeName"
     placeholder="Chicken Rice Bowl"
 />
 
-<label>Servings</label>
+<label>
+Recipe Servings
+</label>
 
 <input
     id="recipeServings"
@@ -100,11 +119,11 @@ Create Recipe
 
 <input
     id="foodSearch"
-    placeholder="Search curated foods..."
+    placeholder="Search USDA foods..."
 />
 
 <button onclick="searchFoods()">
-Search
+Search Foods
 </button>
 
 <div id="searchResults"></div>
@@ -113,10 +132,12 @@ Search
 
 <div class="card">
 
-<h2>Ingredients</h2>
+<h2>Recipe Ingredients</h2>
 
 <div id="ingredients">
+
 No ingredients yet.
+
 </div>
 
 </div>
@@ -129,18 +150,7 @@ id="nutrition"
 <h2>Recipe Nutrition</h2>
 
 <label>
-Save Recipe Servings
-</label>
-
-<input
-    id="recipeLogServings"
-    type="number"
-    value="1"
-    step="0.5"
-/>
-
-<label>
-Meal
+Save Recipe To Meal
 </label>
 
 <select id="recipeMeal">
@@ -162,6 +172,18 @@ Meal
 </option>
 
 </select>
+
+<label>
+Servings To Log
+</label>
+
+<input
+    id="recipeLogServings"
+    type="number"
+    value="1"
+    min="0.5"
+    step="0.5"
+/>
 
 <button onclick="saveRecipeToDiary()">
 🍲 Save Recipe To Diary
@@ -292,27 +314,64 @@ async function searchFoods(){
             )
             .value;
 
-    const { data } =
+    if(query.length < 2){
+
+        alert(
+            "Enter at least 2 characters."
+        );
+
+        return;
+    }
+
+    const { data, error } =
         await supabaseClient
-            .from("curated_foods")
+            .from("usda_foods")
             .select("*")
             .ilike(
-                "search_name",
+                "item_name",
                 `%${query}%`
-            );
+            )
+            .limit(25);
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+    }
 
     let html = "";
 
     data.forEach(food => {
 
         html += `
-        <div class="ingredient">
+        <div class="search-result">
 
             <strong>
-                ${food.search_name}
+                ${food.item_name}
             </strong>
 
             <br>
+
+            Calories:
+            ${food.calories}
+
+            <br>
+
+            Protein:
+            ${food.protein_g ?? 0}g
+
+            <br>
+
+            Carbs:
+            ${food.carbs_g ?? 0}g
+
+            <br>
+
+            Fat:
+            ${food.fat_g ?? 0}g
+
+            <br><br>
 
             Grams
 
@@ -320,17 +379,18 @@ async function searchFoods(){
                 id="grams_${food.id}"
                 type="number"
                 value="100"
+                min="1"
             >
 
             <button
                 onclick="
                     addIngredient(
-                        ${food.usda_food_id},
+                        ${food.id},
                         ${food.id}
                     )
                 "
             >
-                Add
+                Add Ingredient
             </button>
 
         </div>
@@ -342,7 +402,7 @@ async function searchFoods(){
             "searchResults"
         )
         .innerHTML =
-        html;
+        html || "No foods found.";
 }
 
 async function addIngredient(
@@ -381,6 +441,7 @@ async function addIngredient(
 
                 grams:
                     grams
+
             });
 
     if(error){
@@ -450,10 +511,21 @@ async function loadIngredients(){
         const factor =
             ingredient.grams / 100;
 
-        calories += Number(food.calories || 0) * factor;
-        protein += Number(food.protein_g || 0) * factor;
-        carbs += Number(food.carbs_g || 0) * factor;
-        fat += Number(food.fat_g || 0) * factor;
+        calories +=
+            Number(food.calories || 0)
+            * factor;
+
+        protein +=
+            Number(food.protein_g || 0)
+            * factor;
+
+        carbs +=
+            Number(food.carbs_g || 0)
+            * factor;
+
+        fat +=
+            Number(food.fat_g || 0)
+            * factor;
 
         html += `
         <div class="ingredient">
@@ -487,22 +559,30 @@ async function loadIngredients(){
         html || "No ingredients.";
 
     document
-        .getElementById("calories")
+        .getElementById(
+            "calories"
+        )
         .innerText =
         calories.toFixed(0);
 
     document
-        .getElementById("protein")
+        .getElementById(
+            "protein"
+        )
         .innerText =
         protein.toFixed(1);
 
     document
-        .getElementById("carbs")
+        .getElementById(
+            "carbs"
+        )
         .innerText =
         carbs.toFixed(1);
 
     document
-        .getElementById("fat")
+        .getElementById(
+            "fat"
+        )
         .innerText =
         fat.toFixed(1);
 
