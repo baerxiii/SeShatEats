@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 
-<title>SeShatEats Admin Foods</title>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>SeShatEats Food Curator</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
@@ -10,28 +14,93 @@
 <style>
 
 body{
-    font-family:Arial;
-    max-width:1200px;
+    font-family:Arial,sans-serif;
+    max-width:1400px;
     margin:auto;
     padding:20px;
+    background:#f5f5f5;
+}
+
+h1{
+    color:#2e7d32;
+}
+
+.nav{
+    margin-bottom:20px;
+}
+
+.nav a{
+    color:#2e7d32;
+    font-weight:bold;
+    text-decoration:none;
 }
 
 .card{
+    background:white;
     border:1px solid #ddd;
     padding:15px;
     margin:10px 0;
     border-radius:10px;
+    box-shadow:0 2px 4px rgba(0,0,0,.08);
+}
+
+.search-box{
+    display:flex;
+    gap:10px;
+}
+
+.search-box input{
+    flex:1;
 }
 
 input,
 select{
+
     width:100%;
     padding:10px;
-    margin:5px 0;
+    margin-top:5px;
+    margin-bottom:8px;
+
 }
 
 button{
-    padding:10px 15px;
+
+    padding:10px 16px;
+    cursor:pointer;
+
+}
+
+.save-btn{
+    background:#2e7d32;
+    color:white;
+    border:none;
+    border-radius:6px;
+}
+
+.save-btn:hover{
+    background:#1b5e20;
+}
+
+.meta{
+
+    margin-top:10px;
+    font-size:14px;
+
+}
+
+.saved{
+
+    color:green;
+    font-weight:bold;
+
+}
+
+.row{
+
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+
 }
 
 </style>
@@ -40,20 +109,46 @@ button{
 
 <body>
 
-<h1>Food Curator</h1>
+<div class="nav">
+
+<a href="index.html">
+🏠 Dashboard
+</a>
+
+|
+
+<a href="diary.html">
+📋 Diary
+</a>
+
+|
+
+<a href="recipes.html">
+🍲 Recipes
+</a>
+
+</div>
+
+<h1>🛠 Food Curator</h1>
+
+<div class="search-box">
 
 <input
     id="search"
-    placeholder="Search USDA foods"
-/>
+    placeholder="Search USDA foods..."
+>
 
 <button onclick="searchFoods()">
 Search
 </button>
 
+</div>
+
 <hr>
 
-<div id="results"></div>
+<div id="results">
+Search for a food to begin.
+</div>
 
 <script>
 
@@ -61,10 +156,22 @@ async function searchFoods(){
 
     const query =
         document
-            .getElementById("search")
-            .value;
+            .getElementById(
+                "search"
+            )
+            .value
+            .trim();
 
-    const { data } =
+    if(query.length < 2){
+
+        alert(
+            "Enter at least 2 characters."
+        );
+
+        return;
+    }
+
+    const { data, error } =
         await supabaseClient
             .from("usda_foods")
             .select("*")
@@ -72,7 +179,14 @@ async function searchFoods(){
                 "item_name",
                 `%${query}%`
             )
-            .limit(25);
+            .limit(50);
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
 
     let html = "";
 
@@ -85,55 +199,111 @@ async function searchFoods(){
                 ${food.item_name}
             </strong>
 
-            <br><br>
+            <div class="meta">
 
-            <input
-                id="name_${food.id}"
-                placeholder="Friendly Name"
-            >
+                Calories:
+                ${food.calories ?? 0}
 
-            <select
-                id="cat_${food.id}"
-            >
+                |
 
-                <option>
-                    Protein
-                </option>
+                Protein:
+                ${food.protein_g ?? 0}g
 
-                <option>
-                    Dairy
-                </option>
+                |
 
-                <option>
-                    Fruit
-                </option>
+                Carbs:
+                ${food.carbs_g ?? 0}g
 
-                <option>
-                    Vegetable
-                </option>
+                |
 
-                <option>
-                    Grain
-                </option>
+                Fat:
+                ${food.fat_g ?? 0}g
 
-                <option>
-                    Seafood
-                </option>
+            </div>
 
-            </select>
+            <div class="row">
+
+                <div>
+
+                    Friendly Name
+
+                    <input
+                        id="name_${food.id}"
+                        value="${food.item_name}"
+                    >
+
+                </div>
+
+                <div>
+
+                    Category
+
+                    <select
+                        id="cat_${food.id}"
+                    >
+
+                        <option selected>
+                            Protein
+                        </option>
+
+                        <option>
+                            Dairy
+                        </option>
+
+                        <option>
+                            Fruit
+                        </option>
+
+                        <option>
+                            Vegetable
+                        </option>
+
+                        <option>
+                            Grain
+                        </option>
+
+                        <option>
+                            Seafood
+                        </option>
+
+                        <option>
+                            Beverage
+                        </option>
+
+                        <option>
+                            Snack
+                        </option>
+
+                        <option>
+                            Supplement
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
 
             <button
+                class="save-btn"
                 onclick="saveFood(${food.id})"
             >
-                Save
+                ➕ Add To Curated Foods
             </button>
+
+            <span
+                id="status_${food.id}"
+                class="saved"
+            ></span>
 
         </div>
         `;
     });
 
     document
-        .getElementById("results")
+        .getElementById(
+            "results"
+        )
         .innerHTML = html;
 }
 
@@ -144,7 +314,8 @@ async function saveFood(id){
             .getElementById(
                 `name_${id}`
             )
-            .value;
+            .value
+            .trim();
 
     const category =
         document
@@ -153,23 +324,43 @@ async function saveFood(id){
             )
             .value;
 
-    const { error } =
-        await supabaseClient
-            .from("curated_foods")
-            .insert({
-                usda_food_id:id,
-                search_name:name,
-                category:category
-            });
+    if(!name){
 
-    if(error){
-
-        alert(error.message);
+        alert(
+            "Enter a friendly name."
+        );
 
         return;
     }
 
-    alert("Food Added");
+    const { error } =
+        await supabaseClient
+            .from("curated_foods")
+            .upsert({
+
+                usda_food_id:id,
+
+                search_name:name,
+
+                category:category
+
+            });
+
+    if(error){
+
+        alert(
+            error.message
+        );
+
+        return;
+    }
+
+    document
+        .getElementById(
+            `status_${id}`
+        )
+        .innerText =
+        "✅ Saved";
 }
 
 </script>
