@@ -95,9 +95,7 @@ function renderDiary(foodLogs, recipeLogs, recipes) {
       const button = event.currentTarget;
       button.disabled = true;
       try {
-        const { data, error } = await supabaseClient.from(table).delete().eq("id", log.id).select("id");
-        if (error) throw error;
-        if (!data?.length) throw new Error("The entry could not be deleted. Check your permissions.");
+        await deleteDiaryEntry(table, log.id);
         await loadDiary();
       } catch (error) {
         alert(`Could not delete diary entry: ${error.message}`);
