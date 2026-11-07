@@ -536,31 +536,285 @@ body{
 
 <script type="module">
 
-/*
-Paste your existing Supabase diary JavaScript here.
 
-The IDs are unchanged:
+import {
+    createClient
+}
+from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-prevDayBtn
-nextDayBtn
-diaryDate
+const SUPABASE_URL =
+"YOUR_SUPABASE_URL";
 
-totalCalories
-totalProtein
-totalCarbs
-totalFat
+const SUPABASE_ANON_KEY =
+"YOUR_SUPABASE_ANON_KEY";
 
-breakfastFoods
-lunchFoods
-dinnerFoods
-snackFoods
+const supabase =
+createClient(
+    https://uzbbwvihkfzdbnowhglc.supabase.co,
+    sb_publishable_a6YEwdDOpkZ6BI8pHXVPnQ_WlFMlHmf
+    "https://uzbbwvihkfzdbnowhglc.supabase.co",
+    "sb_publishable_a6YEwdDOpkZ6BI8pHXVPnQ_WlFMlHmf"
+);
 
-NEW:
-breakfastCalories
-lunchCalories
-dinnerCalories
-snackCalories
-*/
+const diaryDate =
+document.getElementById(
+    "diaryDate"
+);
+
+diaryDate.value =
+new Date()
+.toISOString()
+.split("T")[0];
+
+//
+// Date Navigation
+//
+
+document
+.getElementById("prevDayBtn")
+.addEventListener(
+"click",
+() => {
+
+    const d =
+    new Date(
+        diaryDate.value
+    );
+
+    d.setDate(
+        d.getDate() - 1
+    );
+
+    diaryDate.value =
+    d.toISOString()
+    .split("T")[0];
+
+    loadDiary();
+
+});
+
+document
+.getElementById("nextDayBtn")
+.addEventListener(
+"click",
+() => {
+
+    const d =
+    new Date(
+        diaryDate.value
+    );
+
+    d.setDate(
+        d.getDate() + 1
+    );
+
+    diaryDate.value =
+    d.toISOString()
+    .split("T")[0];
+
+    loadDiary();
+
+});
+
+diaryDate.addEventListener(
+    "change",
+    loadDiary
+);
+
+//
+// Diary Loader
+//
+
+async function loadDiary(){
+
+    const date =
+    diaryDate.value;
+
+    const {
+
+        data,
+        error
+
+    } = await supabase
+
+    .from("food_logs")
+
+    .select("*")
+
+    .eq(
+        "food_date",
+        date
+    )
+
+    .order(
+        "created_at",
+        {
+            ascending:true
+        }
+    );
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    renderDiary(
+        data || []
+    );
+
+}
+
+//
+// Render
+//
+
+function renderDiary(data){
+
+    const breakfast =
+    document.getElementById(
+        "breakfastFoods"
+    );
+
+    const lunch =
+    document.getElementById(
+        "lunchFoods"
+    );
+
+    const dinner =
+    document.getElementById(
+        "dinnerFoods"
+    );
+
+    const snack =
+    document.getElementById(
+        "snackFoods"
+    );
+
+    breakfast.innerHTML = "";
+    lunch.innerHTML = "";
+    dinner.innerHTML = "";
+    snack.innerHTML = "";
+
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    data.forEach(food => {
+
+        calories += Number(
+            food.calories || 0
+        );
+
+        protein += Number(
+            food.protein_g || 0
+        );
+
+        carbs += Number(
+            food.carbs_g || 0
+        );
+
+        fat += Number(
+            food.fat_g || 0
+        );
+
+        const div =
+        document.createElement(
+            "div"
+        );
+
+        div.className =
+        "food-item";
+
+        div.innerHTML = `
+
+            <div class="food-name">
+                ${food.item_name}
+            </div>
+
+            <div class="food-macros">
+
+                ${food.calories || 0} cal
+
+                ·
+
+                P ${food.protein_g || 0}g
+
+                ·
+
+                C ${food.carbs_g || 0}g
+
+                ·
+
+                F ${food.fat_g || 0}g
+
+            </div>
+
+        `;
+
+        const meal =
+        (
+            food.meal_type || ""
+        )
+        .toLowerCase();
+
+        if(meal === "breakfast"){
+
+            breakfast.appendChild(
+                div
+            );
+
+        }
+        else if(meal === "lunch"){
+
+            lunch.appendChild(
+                div
+            );
+
+        }
+        else if(meal === "dinner"){
+
+            dinner.appendChild(
+                div
+            );
+
+        }
+        else{
+
+            snack.appendChild(
+                div
+            );
+
+        }
+
+    });
+
+    document.getElementById(
+        "totalCalories"
+    ).innerText =
+    Math.round(calories);
+
+    document.getElementById(
+        "totalProtein"
+    ).innerText =
+    Math.round(protein) + "g";
+
+    document.getElementById(
+        "totalCarbs"
+    ).innerText =
+    Math.round(carbs) + "g";
+
+    document.getElementById(
+        "totalFat"
+    ).innerText =
+    Math.round(fat) + "g";
+
+}
+
+loadDiary();
+
 
 </script>
 
