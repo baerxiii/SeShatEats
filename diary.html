@@ -309,6 +309,28 @@ body{
     }
 
 }
+
+    .delete-food{
+
+    border:none;
+
+    background:#ef4444;
+
+    color:white;
+
+    border-radius:8px;
+
+    padding:8px 10px;
+
+    cursor:pointer;
+
+}
+
+.delete-food:hover{
+
+    background:#dc2626;
+
+}
 </style>
 
 </head>
@@ -778,31 +800,94 @@ fat += displayFat;
         
         div.innerHTML = `
 
-    <div class="food-name">
+<div style="
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+">
 
-        ${f.item_name}
+    <div>
+
+        <div class="food-name">
+
+            ${f.item_name}
+
+        </div>
+
+        <div class="food-macros">
+
+            ${Math.round(displayCalories)} cal
+
+            ·
+
+            P ${displayProtein.toFixed(1)}g
+
+            ·
+
+            C ${displayCarbs.toFixed(1)}g
+
+            ·
+
+            F ${displayFat.toFixed(1)}g
+
+        </div>
 
     </div>
 
-    <div class="food-macros">
+    <button
+        class="delete-food"
+        data-id="${food.id}"
+    >
+        🗑️
+    </button>
 
-  ${Math.round(displayCalories)} cal
-
-·
-
-P ${displayProtein.toFixed(1)}g
-
-·
-
-C ${displayCarbs.toFixed(1)}g
-
-·
-
-F ${displayFat.toFixed(1)}g
-
-    </div>
+</div>
 
 `;
+
+        const deleteBtn =
+    div.querySelector(
+        ".delete-food"
+    );
+
+deleteBtn.addEventListener(
+    "click",
+    async () => {
+
+        if(
+            !confirm(
+                "Delete this diary entry?"
+            )
+        ){
+            return;
+        }
+
+        const { error } =
+            await supabase
+
+            .from("food_logs")
+
+            .delete()
+
+            .eq(
+                "id",
+                food.id
+            );
+
+        if(error){
+
+            alert(
+                error.message
+            );
+
+            return;
+
+        }
+
+        loadDiary();
+
+    }
+);
 
         const meal =
 (
