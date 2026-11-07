@@ -1,0 +1,62 @@
+.diary-page {
+    max-width: 1000px;
+    margin: auto;
+    padding: 1rem;
+}
+
+.diary-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+#diaryDate {
+    font-size: 1rem;
+    padding: 0.5rem;
+}
+
+.quick-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.quick-nav button {
+    padding: 0.5rem 1rem;
+}
+
+.daily-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(150px,1fr)
+        );
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.summary-card {
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 1rem;
+    background: #fafafa;
+}
+
+.summary-card div {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.meal-section {
+    margin-bottom: 2rem;
+}
+
+.meal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
