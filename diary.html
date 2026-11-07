@@ -1,128 +1,84 @@
-<div class="diary-page">
+const diaryDate =
+    document.getElementById(
+        "diaryDate"
+    );
 
-    <div class="diary-header">
+//
+// Set today's date
+//
 
-        <button id="prevDayBtn">
-            ◀
-        </button>
+diaryDate.value =
+    new Date()
+        .toISOString()
+        .split("T")[0];
 
-        <div class="date-container">
+//
+// Previous day button
+//
 
-            <input
-                type="date"
-                id="diaryDate"
-            >
+document
+.getElementById("prevDayBtn")
+.addEventListener(
+    "click",
+    () => {
 
-        </div>
+        const date =
+            new Date(
+                diaryDate.value
+            );
 
-        <button id="nextDayBtn">
-            ▶
-        </button>
+        date.setDate(
+            date.getDate() - 1
+        );
 
-    </div>
+        diaryDate.value =
+            date
+            .toISOString()
+            .split("T")[0];
 
-    <div class="quick-nav">
+        loadDiary();
+    }
+);
 
-        <button data-days="0">
-            Today
-        </button>
+//
+// Next day button
+//
 
-        <button data-days="-1">
-            Yesterday
-        </button>
+document
+.getElementById("nextDayBtn")
+.addEventListener(
+    "click",
+    () => {
 
-        <button id="weekViewBtn">
-            Last 7 Days
-        </button>
+        const date =
+            new Date(
+                diaryDate.value
+            );
 
-    </div>
+        date.setDate(
+            date.getDate() + 1
+        );
 
-    <div class="daily-summary">
+        diaryDate.value =
+            date
+            .toISOString()
+            .split("T")[0];
 
-        <div class="summary-card">
+        loadDiary();
+    }
+);
 
-            <h3>Calories</h3>
+//
+// Date picker changed
+//
 
-            <div id="totalCalories">
-                0
-            </div>
+diaryDate.addEventListener(
+    "change",
+    loadDiary
+);
 
-        </div>
+//
+// Initial page load
+//
 
-        <div class="summary-card">
-
-            <h3>Protein</h3>
-
-            <div id="totalProtein">
-                0g
-            </div>
-
-        </div>
-
-        <div class="summary-card">
-
-            <h3>Carbs</h3>
-
-            <div id="totalCarbs">
-                0g
-            </div>
-
-        </div>
-
-        <div class="summary-card">
-
-            <h3>Fat</h3>
-
-            <div id="totalFat">
-                0g
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="meal-section">
-
-        <h2>Breakfast</h2>
-
-        <div
-            id="breakfastFoods"
-            class="meal-list"
-        ></div>
-
-    </div>
-
-    <div class="meal-section">
-
-        <h2>Lunch</h2>
-
-        <div
-            id="lunchFoods"
-            class="meal-list"
-        ></div>
-
-    </div>
-
-    <div class="meal-section">
-
-        <h2>Dinner</h2>
-
-        <div
-            id="dinnerFoods"
-            class="meal-list"
-        ></div>
-
-    </div>
-
-    <div class="meal-section">
-
-        <h2>Snacks</h2>
-
-        <div
-            id="snackFoods"
-            class="meal-list"
-        ></div>
-
-    </div>
-
-</div>
+loadDiary();
