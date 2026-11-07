@@ -724,6 +724,11 @@ function renderDiary(data){
     let carbs = 0;
     let fat = 0;
 
+    let breakfastTotal = 0;
+let lunchTotal = 0;
+let dinnerTotal = 0;
+let snackTotal = 0;
+
     data.forEach(food => {
 
         const f =
@@ -789,40 +794,40 @@ fat += Number(
 `;
 
 
-        const meal =
-        (
-            food.meal_type || ""
-        )
-        .toLowerCase();
+        const servings =
+    Number(food.servings || 1);
 
-        if(meal === "breakfast"){
+const itemCalories =
+    Number(f.calories || 0) * servings;
 
-            breakfast.appendChild(
-                div
-            );
+if(meal === "breakfast"){
 
-        }
-        else if(meal === "lunch"){
+    breakfast.appendChild(div);
 
-            lunch.appendChild(
-                div
-            );
+    breakfastTotal += itemCalories;
 
-        }
-        else if(meal === "dinner"){
+}
+else if(meal === "lunch"){
 
-            dinner.appendChild(
-                div
-            );
+    lunch.appendChild(div);
 
-        }
-        else{
+    lunchTotal += itemCalories;
 
-            snack.appendChild(
-                div
-            );
+}
+else if(meal === "dinner"){
 
-        }
+    dinner.appendChild(div);
+
+    dinnerTotal += itemCalories;
+
+}
+else{
+
+    snack.appendChild(div);
+
+    snackTotal += itemCalories;
+
+}
 
     });
 
@@ -845,6 +850,27 @@ fat += Number(
         "totalFat"
     ).innerText =
     Math.round(fat) + "g";
+
+    document.getElementById(
+    "breakfastCalories"
+).innerText =
+Math.round(breakfastTotal) + " cal";
+
+document.getElementById(
+    "lunchCalories"
+).innerText =
+Math.round(lunchTotal) + " cal";
+
+document.getElementById(
+    "dinnerCalories"
+).innerText =
+Math.round(dinnerTotal) + " cal";
+
+document.getElementById(
+    "snackCalories"
+).innerText =
+Math.round(snackTotal) + " cal";
+
 
 }
 
