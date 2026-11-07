@@ -739,21 +739,32 @@ if(!f){
     return;
 }
 
-        calories += Number(
-    f.calories || 0
-);
+     const servings =
+    Number(food.servings || 1);
 
-protein += Number(
-    f.protein_g || 0
-);
+const displayCalories =
+    Number(f.calories || 0) *
+    servings;
 
-carbs += Number(
-    f.carbs_g || 0
-);
+const displayProtein =
+    Number(f.protein_g || 0) *
+    servings;
 
-fat += Number(
-    f.fat_g || 0
-);
+const displayCarbs =
+    Number(f.carbs_g || 0) *
+    servings;
+
+const displayFat =
+    Number(f.fat_g || 0) *
+    servings;
+
+calories += displayCalories;
+
+protein += displayProtein;
+
+carbs += displayCarbs;
+
+fat += displayFat;
 
         const div =
         document.createElement(
@@ -775,19 +786,38 @@ fat += Number(
 
     <div class="food-macros">
 
-        ${Math.round(f.calories || 0)} cal
+    const servings =
+    Number(food.servings || 1);
 
-        ·
+const displayCalories =
+    Number(f.calories || 0) *
+    servings;
 
-        P ${f.protein_g || 0}g
+const displayProtein =
+    Number(f.protein_g || 0) *
+    servings;
 
-        ·
+const displayCarbs =
+    Number(f.carbs_g || 0) *
+    servings;
 
-        C ${f.carbs_g || 0}g
+const displayFat =
+    Number(f.fat_g || 0) *
+    servings;
 
-        ·
+        ${Math.round(displayCalories)} cal
 
-        F ${f.fat_g || 0}g
+·
+
+P ${displayProtein.toFixed(1)}g
+
+·
+
+C ${displayCarbs.toFixed(1)}g
+
+·
+
+F ${displayFat.toFixed(1)}g
 
     </div>
 
