@@ -15,6 +15,7 @@ Open `http://localhost:8000`. Configure `js/supabase.js` with the project URL an
 Open `account.html` or use the sign-in form on the recipe page. Create an account with an email and password, confirm the email if Supabase email confirmation is enabled, then sign in. Supabase Auth persists the session in the browser. Add an item from Food Search and check Today's Diary.
 
 Recipes logged from the recipe builder also appear in the diary for the selected meal and can be removed there. Recipe nutrition is calculated from the recipe's current ingredients and serving count.
+The dashboard's recent food and recipe entries can also be removed using their trash buttons.
 
 If adding a food fails, apply these SQL migrations in Supabase SQL Editor in order, if they have not already been run:
 
@@ -24,7 +25,7 @@ If adding a food fails, apply these SQL migrations in Supabase SQL Editor in ord
 
 Ensure `food_logs.user_id` exists and your existing RLS policies permit authenticated owners to insert/read/update/delete their own rows. For recipes, Supabase must also grant authenticated users the needed access to `recipes`, `recipe_ingredients`, and `recipe_logs`; those tables' exact ownership columns/policies vary by project.
 
-Run the diary regression tests with `node --test tests/diary.test.js`.
+Run the dashboard and diary regression tests with `node --test tests/*.test.js`.
 
 ## Food lookup
 

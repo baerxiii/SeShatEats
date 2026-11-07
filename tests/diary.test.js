@@ -66,7 +66,7 @@ function setup(overrides = {}) {
       }
     }
   });
-  for (const file of ["nutrition.js", "diary.js"]) {
+  for (const file of ["nutrition.js", "logs.js", "diary.js"]) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", file), "utf8"), context);
   }
   return { context, elements, requests, alerts };
