@@ -1,76 +1,252 @@
-const diaryDate =
-    document.getElementById(
-        "diaryDate"
-    );
+<!DOCTYPE html>
+<html lang="en">
+<head>
 
-//
-// Set today's date
-//
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Food Diary</title>
+
+<style>
+
+body{
+    font-family:Arial,sans-serif;
+    background:#f5f5f5;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+}
+
+.header{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+button{
+    padding:8px 14px;
+    cursor:pointer;
+}
+
+#diaryDate{
+    padding:8px;
+}
+
+.summary{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.card{
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+}
+
+.value{
+    font-size:24px;
+    font-weight:bold;
+}
+
+.meal{
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    margin-bottom:15px;
+}
+
+.food-item{
+    padding:8px 0;
+    border-bottom:1px solid #eee;
+}
+
+.food-name{
+    font-weight:bold;
+}
+
+.food-macros{
+    font-size:14px;
+    color:#666;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+
+        <button id="prevDayBtn">
+            ◀
+        </button>
+
+        <input
+            type="date"
+            id="diaryDate"
+        >
+
+        <button id="nextDayBtn">
+            ▶
+        </button>
+
+    </div>
+
+    <div class="summary">
+
+        <div class="card">
+            <h3>Calories</h3>
+            <div
+                class="value"
+                id="totalCalories"
+            >
+                0
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Protein</h3>
+            <div
+                class="value"
+                id="totalProtein"
+            >
+                0g
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Carbs</h3>
+            <div
+                class="value"
+                id="totalCarbs"
+            >
+                0g
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Fat</h3>
+            <div
+                class="value"
+                id="totalFat"
+            >
+                0g
+            </div>
+        </div>
+
+    </div>
+
+    <div class="meal">
+        <h2>Breakfast</h2>
+        <div id="breakfastFoods"></div>
+    </div>
+
+    <div class="meal">
+        <h2>Lunch</h2>
+        <div id="lunchFoods"></div>
+    </div>
+
+    <div class="meal">
+        <h2>Dinner</h2>
+        <div id="dinnerFoods"></div>
+    </div>
+
+    <div class="meal">
+        <h2>Snacks</h2>
+        <div id="snackFoods"></div>
+    </div>
+
+</div>
+
+<script type="module">
+
+import {
+    createClient
+}
+from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const SUPABASE_URL =
+"YOUR_SUPABASE_URL";
+
+const SUPABASE_ANON_KEY =
+"YOUR_SUPABASE_ANON_KEY";
+
+const supabase =
+createClient(
+    https://uzbbwvihkfzdbnowhglc.supabase.co,
+    sb_publishable_a6YEwdDOpkZ6BI8pHXVPnQ_WlFMlHmf
+);
+
+const diaryDate =
+document.getElementById(
+    "diaryDate"
+);
 
 diaryDate.value =
-    new Date()
-        .toISOString()
-        .split("T")[0];
+new Date()
+.toISOString()
+.split("T")[0];
 
 //
-// Previous day button
+// Date Navigation
 //
 
 document
 .getElementById("prevDayBtn")
 .addEventListener(
-    "click",
-    () => {
+"click",
+() => {
 
-        const date =
-            new Date(
-                diaryDate.value
-            );
+    const d =
+    new Date(
+        diaryDate.value
+    );
 
-        date.setDate(
-            date.getDate() - 1
-        );
+    d.setDate(
+        d.getDate() - 1
+    );
 
-        diaryDate.value =
-            date
-            .toISOString()
-            .split("T")[0];
+    diaryDate.value =
+    d.toISOString()
+    .split("T")[0];
 
-        loadDiary();
-    }
-);
+    loadDiary();
 
-//
-// Next day button
-//
+});
 
 document
 .getElementById("nextDayBtn")
 .addEventListener(
-    "click",
-    () => {
+"click",
+() => {
 
-        const date =
-            new Date(
-                diaryDate.value
-            );
+    const d =
+    new Date(
+        diaryDate.value
+    );
 
-        date.setDate(
-            date.getDate() + 1
-        );
+    d.setDate(
+        d.getDate() + 1
+    );
 
-        diaryDate.value =
-            date
-            .toISOString()
-            .split("T")[0];
+    diaryDate.value =
+    d.toISOString()
+    .split("T")[0];
 
-        loadDiary();
-    }
-);
+    loadDiary();
 
-//
-// Date picker changed
-//
+});
 
 diaryDate.addEventListener(
     "change",
@@ -78,7 +254,200 @@ diaryDate.addEventListener(
 );
 
 //
-// Initial page load
+// Diary Loader
 //
 
+async function loadDiary(){
+
+    const date =
+    diaryDate.value;
+
+    const {
+
+        data,
+        error
+
+    } = await supabase
+
+    .from("food_logs")
+
+    .select("*")
+
+    .eq(
+        "food_date",
+        date
+    )
+
+    .order(
+        "created_at",
+        {
+            ascending:true
+        }
+    );
+
+    if(error){
+
+        console.error(error);
+
+        return;
+    }
+
+    renderDiary(
+        data || []
+    );
+
+}
+
+//
+// Render
+//
+
+function renderDiary(data){
+
+    const breakfast =
+    document.getElementById(
+        "breakfastFoods"
+    );
+
+    const lunch =
+    document.getElementById(
+        "lunchFoods"
+    );
+
+    const dinner =
+    document.getElementById(
+        "dinnerFoods"
+    );
+
+    const snack =
+    document.getElementById(
+        "snackFoods"
+    );
+
+    breakfast.innerHTML = "";
+    lunch.innerHTML = "";
+    dinner.innerHTML = "";
+    snack.innerHTML = "";
+
+    let calories = 0;
+    let protein = 0;
+    let carbs = 0;
+    let fat = 0;
+
+    data.forEach(food => {
+
+        calories += Number(
+            food.calories || 0
+        );
+
+        protein += Number(
+            food.protein_g || 0
+        );
+
+        carbs += Number(
+            food.carbs_g || 0
+        );
+
+        fat += Number(
+            food.fat_g || 0
+        );
+
+        const div =
+        document.createElement(
+            "div"
+        );
+
+        div.className =
+        "food-item";
+
+        div.innerHTML = `
+
+            <div class="food-name">
+                ${food.item_name}
+            </div>
+
+            <div class="food-macros">
+
+                ${food.calories || 0} cal
+
+                ·
+
+                P ${food.protein_g || 0}g
+
+                ·
+
+                C ${food.carbs_g || 0}g
+
+                ·
+
+                F ${food.fat_g || 0}g
+
+            </div>
+
+        `;
+
+        const meal =
+        (
+            food.meal_type || ""
+        )
+        .toLowerCase();
+
+        if(meal === "breakfast"){
+
+            breakfast.appendChild(
+                div
+            );
+
+        }
+        else if(meal === "lunch"){
+
+            lunch.appendChild(
+                div
+            );
+
+        }
+        else if(meal === "dinner"){
+
+            dinner.appendChild(
+                div
+            );
+
+        }
+        else{
+
+            snack.appendChild(
+                div
+            );
+
+        }
+
+    });
+
+    document.getElementById(
+        "totalCalories"
+    ).innerText =
+    Math.round(calories);
+
+    document.getElementById(
+        "totalProtein"
+    ).innerText =
+    Math.round(protein) + "g";
+
+    document.getElementById(
+        "totalCarbs"
+    ).innerText =
+    Math.round(carbs) + "g";
+
+    document.getElementById(
+        "totalFat"
+    ).innerText =
+    Math.round(fat) + "g";
+
+}
+
 loadDiary();
+
+</script>
+
+</body>
+</html>
