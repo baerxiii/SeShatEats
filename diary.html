@@ -559,7 +559,6 @@ document.getElementById(
     "diaryDate"
 );
 
-diaryDate.value =
 const today = new Date();
 
 today.setMinutes(
@@ -569,8 +568,8 @@ today.setMinutes(
 
 diaryDate.value =
     today
-    .toISOString()
-    .split("T")[0];
+        .toISOString()
+        .split("T")[0];
 
 //
 // Date Navigation
