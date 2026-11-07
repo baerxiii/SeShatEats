@@ -786,26 +786,7 @@ fat += displayFat;
 
     <div class="food-macros">
 
-    const servings =
-    Number(food.servings || 1);
-
-const displayCalories =
-    Number(f.calories || 0) *
-    servings;
-
-const displayProtein =
-    Number(f.protein_g || 0) *
-    servings;
-
-const displayCarbs =
-    Number(f.carbs_g || 0) *
-    servings;
-
-const displayFat =
-    Number(f.fat_g || 0) *
-    servings;
-
-        ${Math.round(displayCalories)} cal
+  ${Math.round(displayCalories)} cal
 
 ·
 
@@ -829,11 +810,8 @@ F ${displayFat.toFixed(1)}g
 )
 .toLowerCase();
 
-        const servings =
-    Number(food.servings || 1);
-
 const itemCalories =
-    Number(f.calories || 0) * servings;
+    displayCalories;
 
 if(meal === "breakfast"){
 
