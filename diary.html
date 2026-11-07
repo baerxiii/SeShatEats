@@ -637,7 +637,24 @@ async function loadDiary(){
 
     .from("food_logs")
 
-    .select("*")
+            .select(`
+    *,
+    canada_foods(
+        item_name,
+        calories,
+        protein_g,
+        carbs_g,
+        fat_g
+    ),
+    restaurant_foods(
+        item_name,
+        calories,
+        protein_g,
+        carbs_g,
+        fat_g,
+        restaurant
+    )
+`)
 
     .eq(
         "food_date",
@@ -703,20 +720,20 @@ function renderDiary(data){
     data.forEach(food => {
 
         calories += Number(
-            food.calories || 0
-        );
+    f.calories || 0
+);
 
-        protein += Number(
-            food.protein_g || 0
-        );
+protein += Number(
+    f.protein_g || 0
+);
 
-        carbs += Number(
-            food.carbs_g || 0
-        );
+carbs += Number(
+    f.carbs_g || 0
+);
 
-        fat += Number(
-            food.fat_g || 0
-        );
+fat += Number(
+    f.fat_g || 0
+);
 
         const div =
         document.createElement(
@@ -726,31 +743,42 @@ function renderDiary(data){
         div.className =
         "food-item";
 
+const f =
+    food.restaurant_foods ||
+    food.canada_foods;
+
+if(!f){
+    return;
+}
+        
         div.innerHTML = `
 
-            <div class="food-name">
-                ${food.item_name}
-            </div>
+    <div class="food-name">
 
-            <div class="food-macros">
+        ${f.item_name}
 
-                ${food.calories || 0} cal
+    </div>
 
-                ·
+    <div class="food-macros">
 
-                P ${food.protein_g || 0}g
+        ${Math.round(f.calories || 0)} cal
 
-                ·
+        ·
 
-                C ${food.carbs_g || 0}g
+        P ${f.protein_g || 0}g
 
-                ·
+        ·
 
-                F ${food.fat_g || 0}g
+        C ${f.carbs_g || 0}g
 
-            </div>
+        ·
 
-        `;
+        F ${f.fat_g || 0}g
+
+    </div>
+
+`;
+
 
         const meal =
         (
