@@ -560,9 +560,17 @@ document.getElementById(
 );
 
 diaryDate.value =
-new Date()
-.toISOString()
-.split("T")[0];
+const today = new Date();
+
+today.setMinutes(
+    today.getMinutes()
+    - today.getTimezoneOffset()
+);
+
+diaryDate.value =
+    today
+    .toISOString()
+    .split("T")[0];
 
 //
 // Date Navigation
@@ -719,6 +727,14 @@ function renderDiary(data){
 
     data.forEach(food => {
 
+        const f =
+    food.restaurant_foods ||
+    food.canada_foods;
+
+if(!f){
+    return;
+}
+
         calories += Number(
     f.calories || 0
 );
@@ -743,13 +759,7 @@ fat += Number(
         div.className =
         "food-item";
 
-const f =
-    food.restaurant_foods ||
-    food.canada_foods;
 
-if(!f){
-    return;
-}
         
         div.innerHTML = `
 
