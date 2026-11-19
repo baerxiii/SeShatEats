@@ -1,32 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><link rel="icon" href="favicon.ico?v=2" type="image/x-icon">
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+<link rel="icon" href="favicon.ico?v=2" type="image/x-icon">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Food search — SeShatEats</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase.js"></script><script src="js/auth.js"></script><script src="js/nutrition.js"></script><link rel="stylesheet" href="css/style.css">
-<style>.search-panel{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:12px;align-items:end}.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:8px 16px}.source-error{background:#fff8f6;border-color:#efc3bd}.food-card p{color:var(--muted)}@media(max-width:620px){.search-panel{grid-template-columns:1fr}}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/nutrition.js"></script>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.search-panel{display:grid;grid-template-columns:minmax(0,1fr) 220px 180px;gap:12px;align-items:end}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:8px 16px}
+.source-error{background:#fff8f6;border-color:#efc3bd}
+.food-card p{color:var(--muted)}
+@media(max-width:760px){.search-panel{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-<nav aria-label="Main navigation"><a href="index.html">🍎 SeShatEats</a><a href="search.html" aria-current="page">Search</a><a href="diary.html">Diary</a><a href="recipes.html">Recipes</a><a href="account.html">Account</a></nav>
-<header><p>CANADIAN + RESTAURANT FOODS</p><h1>Find your next meal.</h1><p>Search your Canadian food database and restaurant menu items.</p></header>
+<nav aria-label="Main navigation">
+    <a href="index.html">🍎 SeShatEats</a>
+    <a href="search.html" aria-current="page">Search</a>
+    <a href="diary.html">Diary</a>
+    <a href="recipes.html">Recipes</a>
+    <a href="account.html">Account</a>
+</nav>
+<header>
+    <p>CANADIAN + RESTAURANT + ONLINE FOODS</p>
+    <h1>Find your next meal.</h1>
+    <p>Search your Canadian food database, restaurant menu items, and Open Food Facts online.</p>
+</header>
 <div id="authStatus" aria-live="polite"></div>
-<section class="card"><div class="search-panel"><div><label for="search">Food or restaurant</label><input id="search" type="search" placeholder="Try ‘apple’ or ‘Tim Hortons’" autocomplete="off"></div><div><label for="sourceFilter">Search in</label><select id="sourceFilter"><option value="all">All foods</option><option value="canada">Canadian foods</option><option value="restaurant">Restaurant foods</option></select></div><div><label for="mealType">Add to meal</label><select id="mealType"><option>Breakfast</option><option selected>Lunch</option><option>Dinner</option><option>Snack</option></select></div></div><p id="status" role="status" aria-live="polite">Enter at least 2 characters to search.</p></section>
+
+<section class="card">
+    <div class="search-panel">
+        <div>
+            <label for="search">Food or restaurant</label>
+            <input id="search" type="search" placeholder="Try ‘apple’, ‘Tim Hortons’, or ‘Cheerios’" autocomplete="off">
+        </div>
+        <div>
+            <label for="sourceFilter">Search in</label>
+            <select id="sourceFilter">
+                <option value="all">All sources (Local + Online)</option>
+                <option value="canada">Canadian foods (Local)</option>
+                <option value="restaurant">Restaurant foods (Local)</option>
+                <option value="online">Online database (Open Food Facts)</option>
+            </select>
+        </div>
+        <div>
+            <label for="mealType">Add to meal</label>
+            <select id="mealType">
+                <option>Breakfast</option>
+                <option selected>Lunch</option>
+                <option>Dinner</option>
+                <option>Snack</option>
+            </select>
+        </div>
+    </div>
+    <p id="status" role="status" aria-live="polite">Enter at least 2 characters to search.</p>
+</section>
+
 <main id="results" class="result-grid" aria-live="polite"></main>
-<dialog id="addFoodDialog" aria-labelledby="dialogTitle"><form id="addFoodForm"><h2 id="dialogTitle">Add food to diary</h2><p id="selectedFoodName"></p><label for="servings">Servings</label><input id="servings" name="servings" type="number" min="0.25" step="0.25" value="1" required><label for="dialogMealType">Meal</label><select id="dialogMealType" name="mealType"><option>Breakfast</option><option selected>Lunch</option><option>Dinner</option><option>Snack</option></select><p id="dialogStatus" role="status" aria-live="polite"></p><div class="button-row"><button type="submit" id="confirmAdd">Add to diary</button><button type="button" class="secondary" id="cancelAdd">Cancel</button></div></form></dialog>
+
+<dialog id="addFoodDialog" aria-labelledby="dialogTitle">
+    <form id="addFoodForm">
+        <h2 id="dialogTitle">Add food to diary</h2>
+        <p id="selectedFoodName"></p>
+        <label for="servings">Servings</label>
+        <input id="servings" name="servings" type="number" min="0.25" step="0.25" value="1" required>
+        <label for="dialogMealType">Meal</label>
+        <select id="dialogMealType" name="mealType">
+            <option>Breakfast</option>
+            <option selected>Lunch</option>
+            <option>Dinner</option>
+            <option>Snack</option>
+        </select>
+        <p id="dialogStatus" role="status" aria-live="polite"></p>
+        <div class="button-row">
+            <button type="submit" id="confirmAdd">Add to diary</button>
+            <button type="button" class="secondary" id="cancelAdd">Cancel</button>
+        </div>
+    </form>
+</dialog>
+
 <script>
 renderAuthState('authStatus');
-const searchBox=document.getElementById('search'),resultsDiv=document.getElementById('results'),statusDiv=document.getElementById('status');let debounceTimer,requestNumber=0,selectedFood=null;
-function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}function fmt(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString(undefined,{maximumFractionDigits:1}):'0';}
-searchBox.addEventListener('input',()=>{clearTimeout(debounceTimer);debounceTimer=setTimeout(searchFoods,220);});document.getElementById('sourceFilter').addEventListener('change',searchFoods);
-async function searchFoods(){const query=searchBox.value.trim(),run=++requestNumber;if(query.length<2){resultsDiv.replaceChildren();statusDiv.textContent='Enter at least 2 characters to search.';return;}statusDiv.textContent='Searching Canadian and restaurant foods…';resultsDiv.replaceChildren();const pattern=`%${query}%`,filter=document.getElementById('sourceFilter').value,requests=[];
- if(filter!=='restaurant')requests.push(supabaseClient.from('canada_foods').select('id,category,item_name,calories,protein_g,carbs_g,fat_g,fiber_g,sodium_mg,source,serving_measure,weight_g').ilike('item_name',pattern).limit(50).then(r=>({source:'Canada',...r})));
- if(filter!=='canada'){const cols='id,restaurant,category,item_name,calories,protein_g,carbs_g,fat_g,serving_size,source_url';requests.push(supabaseClient.from('restaurant_foods').select(cols).eq('active',true).ilike('item_name',pattern).limit(50).then(r=>({source:'Restaurant',...r})));requests.push(supabaseClient.from('restaurant_foods').select(cols).eq('active',true).ilike('restaurant',pattern).limit(50).then(r=>({source:'Restaurant',...r})));}
- const responses=await Promise.all(requests);if(run!==requestNumber)return;const failed=responses.filter(r=>r.error),seen=new Set(),foods=[];for(const r of responses){if(r.error){console.error(`${r.source} search failed`,r.error);continue;}for(const food of r.data||[]){const key=`${r.source}:${food.id}`;if(!seen.has(key)){seen.add(key);foods.push({...food,source:r.source});}}}foods.sort((a,b)=>a.source===b.source?(a.item_name||'').localeCompare(b.item_name||''):a.source==='Restaurant'?-1:1);
- if(failed.length===responses.length){statusDiv.textContent=`Search failed: ${failed.map(r=>`${r.source}: ${r.error.message}`).join(' | ')}`;return;}statusDiv.textContent=`${foods.length} result(s)${failed.length?' — some searches failed':''}`;if(failed.length)resultsDiv.innerHTML=`<section class="card source-error"><strong>Some results may be missing.</strong><p>${failed.map(r=>`${esc(r.source)}: ${esc(r.error.message)}`).join('<br>')}</p><p>Check SELECT access for canada_foods and restaurant_foods.</p></section>`;
- if(!foods.length){resultsDiv.insertAdjacentHTML('beforeend','<section class="card"><h2>No matches</h2><p>Try a shorter query.</p></section>');return;}resultsDiv.insertAdjacentHTML('beforeend',foods.map(f=>{const restaurant=f.source==='Restaurant',weight=Number(f.weight_g),portion=restaurant?(f.serving_size||'per menu serving'):(weight>0?`${f.serving_measure||'1 serving'} · ${fmt(weight)} g`:'Values assumed per 100 g');return `<article class="card food-card"><span class="source-badge">${restaurant?'🍽 Restaurant':'🇨🇦 Canada'}</span><h2>${esc(f.item_name)}</h2><p>${restaurant?`${esc(f.restaurant||'')}${f.category?` · ${esc(f.category)}`:''} · ${esc(portion)}`:`${esc(f.category||'Canadian foods')} · ${esc(portion)}`}</p><div class="macros"><div class="macro">Calories<strong>${fmt(f.calories)}</strong></div><div class="macro">Protein<strong>${fmt(f.protein_g)}g</strong></div><div class="macro">Carbs<strong>${fmt(f.carbs_g)}g</strong></div><div class="macro">Fat<strong>${fmt(f.fat_g)}g</strong></div></div>${restaurant&&f.source_url?`<p><a href="${esc(f.source_url)}" target="_blank" rel="noopener noreferrer">View nutrition source ↗</a></p>`:''}<button type="button" onclick="openAddDialog('${f.source}',${Number(f.id)})">Add to diary</button></article>`;}).join(''));
+
+const searchBox = document.getElementById('search');
+const resultsDiv = document.getElementById('results');
+const statusDiv = document.getElementById('status');
+
+let debounceTimer;
+let requestNumber = 0;
+let selectedFood = null;
+let currentFoodsMap = new Map();
+
+function esc(v = '') {
+    return String(v).replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[c]));
 }
-async function openAddDialog(source,id){const {data,error}=await supabaseClient.from(source==='Restaurant'?'restaurant_foods':'canada_foods').select('id,item_name').eq('id',id).single();if(error){statusDiv.textContent=`Could not load item: ${error.message}`;return;}const session=await getCurrentSession().catch(()=>null);if(!session){statusDiv.innerHTML='Sign in to add food to your diary. <a href="account.html">Open Account</a>.';return;}selectedFood={source,id:Number(data.id),name:data.item_name};document.getElementById('selectedFoodName').textContent=data.item_name;document.getElementById('servings').value='1';document.getElementById('dialogMealType').value=document.getElementById('mealType').value;document.getElementById('dialogStatus').textContent='';document.getElementById('addFoodDialog').showModal();document.getElementById('servings').focus();}
-document.getElementById('cancelAdd').addEventListener('click',()=>document.getElementById('addFoodDialog').close());
-document.getElementById('addFoodForm').addEventListener('submit',async event=>{event.preventDefault();if(!selectedFood)return;const servings=Number(document.getElementById('servings').value),message=document.getElementById('dialogStatus'),button=document.getElementById('confirmAdd');if(!Number.isFinite(servings)||servings<=0){message.textContent='Enter a serving amount greater than zero.';return;}button.disabled=true;message.textContent='Adding to diary…';try{const session=await getCurrentSession();if(!session){message.textContent='Your session expired. Sign in again and retry.';return;}const log={user_id:session.user.id,servings,meal_type:document.getElementById('dialogMealType').value,log_date:localDateKey(), food_date:localDateKey()};if(selectedFood.source==='Restaurant')log.restaurant_food_id=selectedFood.id;else log.canada_food_id=selectedFood.id;const {error}=await supabaseClient.from('food_logs').insert(log);if(error)throw error;message.textContent=`Added ${servings} serving(s) of ${selectedFood.name}.`;statusDiv.textContent=`${selectedFood.name} added to your diary.`;setTimeout(()=>document.getElementById('addFoodDialog').close(),700);}catch(error){message.textContent=`Could not add food: ${error.message}${error.code==='42501'?' Check that the signed-in user has an INSERT policy on food_logs.':''}`;}finally{button.disabled=false;}});
-const query=new URLSearchParams(location.search).get('query');if(query){searchBox.value=query;searchFoods();}
-</script></body></html>
+
+function fmt(v) {
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '0';
+}
+
+searchBox.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(searchFoods, 320);
+});
+
+document.getElementById('sourceFilter').addEventListener('change', searchFoods);
+
+async function searchOpenFoodFacts(query) {
+    try {
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&fields=code,product_name,brands,categories,serving_size,serving_quantity,nutriments`;
+        const res = await fetch(url, {
+            headers: { 'User-Agent': 'SeShatEats/1.0 (https://baerxiii.github.io/SeShatEats/)' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        const items = (json.products || [])
+            .filter(p => p.product_name && p.nutriments)
+            .map((p, idx) => {
+                const n = p.nutriments || {};
+                const hasServing = Number(n['energy-kcal_serving']) > 0;
+                const suffix = hasServing ? '_serving' : '_100g';
+                const brand = (p.brands || '').split(',')[0].trim();
+                const fullName = brand && !p.product_name.toLowerCase().includes(brand.toLowerCase())
+                    ? `${p.product_name} (${brand})`
+                    : p.product_name;
+
+                return {
+                    id: p.code || `off-${idx}`,
+                    source: 'Online',
+                    category: brand || 'Open Food Facts',
+                    item_name: fullName,
+                    calories: Math.round(Number(n[`energy-kcal${suffix}`]) || 0),
+                    protein_g: Number((Number(n[`proteins${suffix}`]) || 0).toFixed(1)),
+                    carbs_g: Number((Number(n[`carbohydrates${suffix}`]) || 0).toFixed(1)),
+                    fat_g: Number((Number(n[`fat${suffix}`]) || 0).toFixed(1)),
+                    fiber_g: Number((Number(n[`fiber${suffix}`]) || 0).toFixed(1)),
+                    sodium_mg: Math.round((Number(n[`sodium${suffix}`]) || 0) * 1000),
+                    serving_measure: hasServing ? (p.serving_size || '1 serving') : '100 g',
+                    weight_g: hasServing ? (Number(p.serving_quantity) || null) : 100,
+                    source_url: p.code ? `https://world.openfoodfacts.org/product/${p.code}` : ''
+                };
+            });
+
+        return { source: 'Online', data: items, error: null };
+    } catch (err) {
+        return { source: 'Online', data: [], error: err };
+    }
+}
+
+async function searchFoods() {
+    const query = searchBox.value.trim();
+    const run = ++requestNumber;
+
+    if (query.length < 2) {
+        resultsDiv.replaceChildren();
+        statusDiv.textContent = 'Enter at least 2 characters to search.';
+        return;
+    }
+
+    statusDiv.textContent = 'Searching local and online food databases…';
+    resultsDiv.replaceChildren();
+
+    const pattern = `%${query}%`;
+    const filter = document.getElementById('sourceFilter').value;
+    const requests = [];
+
+    if (filter === 'all' || filter === 'canada') {
+        requests.push(
+            supabaseClient
+                .from('canada_foods')
+                .select('id,category,item_name,calories,protein_g,carbs_g,fat_g,fiber_g,sodium_mg,source,serving_measure,weight_g')
+                .ilike('item_name', pattern)
+                .limit(40)
+                .then(r => ({ source: 'Canada', ...r }))
+        );
+    }
+
+    if (filter === 'all' || filter === 'restaurant') {
+        const cols = 'id,restaurant,category,item_name,calories,protein_g,carbs_g,fat_g,serving_size,source_url';
+        requests.push(
+            supabaseClient
+                .from('restaurant_foods')
+                .select(cols)
+                .eq('active', true)
+                .ilike('item_name', pattern)
+                .limit(40)
+                .then(r => ({ source: 'Restaurant', ...r }))
+        );
+        requests.push(
+            supabaseClient
+                .from('restaurant_foods')
+                .select(cols)
+                .eq('active', true)
+                .ilike('restaurant', pattern)
+                .limit(40)
+                .then(r => ({ source: 'Restaurant', ...r }))
+        );
+    }
+
+    if (filter === 'all' || filter === 'online') {
+        requests.push(searchOpenFoodFacts(query));
+    }
+
+    const responses = await Promise.all(requests);
+    if (run !== requestNumber) return;
+
+    const failed = responses.filter(r => r.error);
+    const seen = new Set();
+    const foods = [];
+    currentFoodsMap.clear();
+
+    for (const r of responses) {
+        if (r.error) {
+            console.error(`${r.source} search failed`, r.error);
+            continue;
+        }
+        for (const food of r.data || []) {
+            const key = `${r.source}:${food.id}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                const item = { ...food, source: r.source, lookupKey: key };
+                foods.push(item);
+                currentFoodsMap.set(key, item);
+            }
+        }
+    }
+
+    const rank = { Restaurant: 0, Canada: 1, Online: 2 };
+    foods.sort((a, b) => {
+        if (rank[a.source] !== rank[b.source]) return rank[a.source] - rank[b.source];
+        return (a.item_name || '').localeCompare(b.item_name || '');
+    });
+
+    if (failed.length === responses.length) {
+        statusDiv.textContent = `Search failed: ${failed.map(r => `${r.source}: ${r.error.message}`).join(' | ')}`;
+        return;
+    }
+
+    statusDiv.textContent = `${foods.length} result(s)${failed.length ? ' — some sources failed' : ''}`;
+
+    if (failed.length) {
+        resultsDiv.innerHTML = `<section class="card source-error"><strong>Some results may be missing.</strong><p>${failed.map(r => `${esc(r.source)}: ${esc(r.error.message)}`).join('<br>')}</p></section>`;
+    }
+
+    if (!foods.length) {
+        resultsDiv.insertAdjacentHTML('beforeend', '<section class="card"><h2>No matches</h2><p>Try a shorter or broader query.</p></section>');
+        return;
+    }
+
+    resultsDiv.insertAdjacentHTML('beforeend', foods.map(f => {
+        const isRestaurant = f.source === 'Restaurant';
+        const isOnline = f.source === 'Online';
+        const weight = Number(f.weight_g);
+        const portion = isRestaurant
+            ? (f.serving_size || 'per menu serving')
+            : (weight > 0 ? `${f.serving_measure || '1 serving'} · ${fmt(weight)} g` : (f.serving_measure || 'Values assumed per 100 g'));
+
+        const badge = isRestaurant
+            ? '🍽 Restaurant'
+            : (isOnline ? '🌐 Open Food Facts' : '🇨🇦 Canada');
+
+        const subtitle = isRestaurant
+            ? `${esc(f.restaurant || '')}${f.category ? ` · ${esc(f.category)}` : ''} · ${esc(portion)}`
+            : `${esc(f.category || 'Canadian foods')} · ${esc(portion)}`;
+
+        return `<article class="card food-card">
+            <span class="source-badge">${badge}</span>
+            <h2>${esc(f.item_name)}</h2>
+            <p>${subtitle}</p>
+            <div class="macros">
+                <div class="macro">Calories<strong>${fmt(f.calories)}</strong></div>
+                <div class="macro">Protein<strong>${fmt(f.protein_g)}g</strong></div>
+                <div class="macro">Carbs<strong>${fmt(f.carbs_g)}g</strong></div>
+                <div class="macro">Fat<strong>${fmt(f.fat_g)}g</strong></div>
+            </div>
+            ${f.source_url ? `<p><a href="${esc(f.source_url)}" target="_blank" rel="noopener noreferrer">View nutrition source ↗</a></p>` : ''}
+            <button type="button" onclick="openAddDialog('${esc(f.lookupKey)}')">Add to diary</button>
+        </article>`;
+    }).join(''));
+}
+
+async function openAddDialog(lookupKey) {
+    const food = currentFoodsMap.get(lookupKey);
+    if (!food) {
+        statusDiv.textContent = 'Could not load selected food item.';
+        return;
+    }
+
+    const session = await getCurrentSession().catch(() => null);
+    if (!session) {
+        statusDiv.innerHTML = 'Sign in to add food to your diary. <a href="account.html">Open Account</a>.';
+        return;
+    }
+
+    selectedFood = food;
+    document.getElementById('selectedFoodName').textContent = food.item_name;
+    document.getElementById('servings').value = '1';
+    document.getElementById('dialogMealType').value = document.getElementById('mealType').value;
+    document.getElementById('dialogStatus').textContent = '';
+    document.getElementById('addFoodDialog').showModal();
+    document.getElementById('servings').focus();
+}
+
+document.getElementById('cancelAdd').addEventListener('click', () => {
+    document.getElementById('addFoodDialog').close();
+});
+
+document.getElementById('addFoodForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!selectedFood) return;
+
+    const servings = Number(document.getElementById('servings').value);
+    const message = document.getElementById('dialogStatus');
+    const button = document.getElementById('confirmAdd');
+
+    if (!Number.isFinite(servings) || servings <= 0) {
+        message.textContent = 'Enter a serving amount greater than zero.';
+        return;
+    }
+
+    button.disabled = true;
+    message.textContent = 'Adding to diary…';
+
+    try {
+        const session = await getCurrentSession();
+        if (!session) {
+            message.textContent = 'Your session expired. Sign in again and retry.';
+            return;
+        }
+
+        const log = {
+            user_id: session.user.id,
+            servings,
+            meal_type: document.getElementById('dialogMealType').value,
+            log_date: localDateKey(),
+            food_date: localDateKey()
+        };
+
+        if (selectedFood.source === 'Restaurant') {
+            log.restaurant_food_id = Number(selectedFood.id);
+        } else if (selectedFood.source === 'Canada') {
+            log.canada_food_id = Number(selectedFood.id);
+        } else if (selectedFood.source === 'Online') {
+            // Check if this Open Food Facts item was already saved to canada_foods
+            const { data: existing } = await supabaseClient
+                .from('canada_foods')
+                .select('id')
+                .eq('item_name', selectedFood.item_name)
+                .eq('source', 'Open Food Facts')
+                .limit(1)
+                .maybeSingle();
+
+            if (existing?.id) {
+                log.canada_food_id = Number(existing.id);
+            } else {
+                const { data: inserted, error: insertFoodError } = await supabaseClient
+                    .from('canada_foods')
+                    .insert({
+                        category: selectedFood.category || 'Open Food Facts',
+                        item_name: selectedFood.item_name,
+                        calories: selectedFood.calories,
+                        protein_g: selectedFood.protein_g,
+                        carbs_g: selectedFood.carbs_g,
+                        fat_g: selectedFood.fat_g,
+                        fiber_g: selectedFood.fiber_g,
+                        sodium_mg: selectedFood.sodium_mg,
+                        source: 'Open Food Facts',
+                        serving_measure: selectedFood.serving_measure,
+                        weight_g: selectedFood.weight_g
+                    })
+                    .select('id')
+                    .single();
+
+                if (insertFoodError) throw insertFoodError;
+                log.canada_food_id = Number(inserted.id);
+            }
+        }
+
+        const { error } = await supabaseClient.from('food_logs').insert(log);
+        if (error) throw error;
+
+        message.textContent = `Added ${servings} serving(s) of ${selectedFood.item_name}.`;
+        statusDiv.textContent = `${selectedFood.item_name} added to your diary.`;
+        setTimeout(() => document.getElementById('addFoodDialog').close(), 700);
+    } catch (error) {
+        message.textContent = `Could not add food: ${error.message}${error.code === '42501' ? ' Check Supabase RLS INSERT policies on canada_foods / food_logs.' : ''}`;
+    } finally {
+        button.disabled = false;
+    }
+});
+
+const query = new URLSearchParams(location.search).get('query');
+if (query) {
+    searchBox.value = query;
+    searchFoods();
+}
+</script>
+</body>
+</html>
